@@ -1,0 +1,44 @@
+{
+  "name": "vitalis-ai",
+  "version": "1.0.0",
+  "description": "Vitalis AI - Autonomous Multimodal Eldercare & Health Advocate on Alexa+ powered by MCP & Amazon Bedrock",
+  "main": "server/dist/index.js",
+  "scripts": {
+    "server:dev": "tsx watch server/src/index.ts",
+    "server:build": "tsc -p server/tsconfig.json",
+    "server:start": "node server/dist/index.js",
+    "client:dev": "npm run dev --prefix client",
+    "client:build": "npm run build --prefix client",
+    "client:start": "npm run start --prefix client",
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "build": "npm run server:build && npm run client:build",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "keywords": [
+    "alexa-plus",
+    "mcp",
+    "model-context-protocol",
+    "amazon-bedrock",
+    "eldercare",
+    "healthcare-ai",
+    "streamable-http",
+    "echo-show"
+  ],
+  "author": "Vitalis AI Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "concurrently": "^9.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.714.0",
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}
