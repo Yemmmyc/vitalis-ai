@@ -4,7 +4,7 @@ import { BedrockService } from "../bedrock-service.js";
 export const pillVisionTools = [
   {
     name: "verify_pill_bottle_vision",
-    description: "Multimodal visual inspection tool using Amazon Bedrock computer vision. Scans pill bottle label, extracts drug name, dosage, Rx number, patient name, and compares against authorized prescriptions to prevent fatal drug mix-ups.",
+    description: "Simulated pill-bottle verification workflow using predefined test scenarios. Validates medication identity, dosage, prescription matching, expiration, and allergy safety rules against the patient's medication profile.",
     inputSchema: {
       type: "object",
       properties: {
@@ -128,7 +128,8 @@ export const pillVisionTools = [
 
       return {
         timestamp: new Date().toISOString(),
-        visionEngine: "Amazon Bedrock Multimodal Vision (Claude 3.5 / AWS Nova)",
+        visionEngine: "Vitalis AI Pill Verification Simulator",
+        simulationMode: true,
         ...analysisResult
       };
     }

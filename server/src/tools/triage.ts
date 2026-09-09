@@ -4,7 +4,7 @@ import { BedrockService } from "../bedrock-service.js";
 export const triageTools = [
   {
     name: "evaluate_health_symptoms",
-    description: "Clinical symptom evaluation engine powered by Amazon Bedrock. Assesses severity, identifies emergency red flags (stroke FAST criteria, myocardial infarction, acute respiratory distress), and recommends safe escalation pathways.",
+    description: "Symptom triage workflow that detects configured emergency red flags, assigns a severity level, records caregiver alerts, and uses Amazon Bedrock to generate an empathetic spoken response.",
     inputSchema: {
       type: "object",
       properties: {
@@ -92,7 +92,7 @@ export const triageTools = [
   },
   {
     name: "get_daily_vital_summary",
-    description: "Returns the patient's latest biometric vitals, including blood pressure, heart rate, blood glucose, hydration, and sleep.",
+    description: "Returns the demo patient's latest biometric vitals, including blood pressure, heart rate, blood glucose, hydration, and sleep.",
     inputSchema: {
       type: "object",
       properties: {

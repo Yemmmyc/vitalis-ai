@@ -22,8 +22,49 @@ export const medicationTools = [
     handler: async (args: any) => {
       const store = PatientStore.getInstance();
       const patient = store.getPatient();
-      const pendingMeds = patient.medications.filter(m => !m.takenToday);
-      const takenMeds = patient.medications.filter(m => m.takenToday);
+
+      const timeOfDay = args.timeOfDay || "all";
+
+      const matchesTimeOfDay = (med: any): boolean => {
+        if (timeOfDay === "all") {
+          return true;
+        }
+
+        return med.scheduledTimes.some((time: string) => {
+          const hourMatch = time.match(/^(\d{1,2}):/);
+
+          if (!hourMatch) {
+            return false;
+          }
+
+          let hour = Number(hourMatch[1]);
+
+          if (time.toUpperCase().includes("PM") && hour !== 12) {
+            hour += 12;
+          }
+
+          if (time.toUpperCase().includes("AM") && hour === 12) {
+            hour = 0;
+          }
+
+          switch (timeOfDay) {
+            case "morning":
+              return hour >= 5 && hour < 12;
+            case "afternoon":
+              return hour >= 12 && hour < 17;
+            case "evening":
+              return hour >= 17 && hour < 21;
+            case "bedtime":
+              return hour >= 21 || hour < 5;
+            default:
+              return false;
+          }
+        });
+      };
+
+      const scheduledMeds = patient.medications.filter(matchesTimeOfDay);
+      const pendingMeds = scheduledMeds.filter(m => !m.takenToday);
+      const takenMeds = scheduledMeds.filter(m => m.takenToday);
 
       return {
         patientName: patient.fullName,
@@ -45,12 +86,13 @@ export const medicationTools = [
           dosage: m.dosage,
           lastTakenTimestamp: m.lastTakenTimestamp
         })),
-        recommendation: pendingMeds.length > 0 
+        recommendation: pendingMeds.length > 0
           ? `Patient has ${pendingMeds.length} pending medication(s) to take: ${pendingMeds.map(m => m.name).join(", ")}.`
           : "All scheduled medications for today have been successfully taken!"
       };
     }
   },
+
   {
     name: "log_medication_dose",
     description: "Logs that a patient has taken, skipped, or delayed a specific scheduled medication dosage.",
@@ -79,8 +121,8 @@ export const medicationTools = [
     },
     handler: async (args: any) => {
       const store = PatientStore.getInstance();
-      const med = store.markMedicationTaken(args.medicationId);
       const patient = store.getPatient();
+      const med = store.getMedicationById(args.medicationId);
 
       if (!med) {
         return {
@@ -89,24 +131,86 @@ export const medicationTools = [
         };
       }
 
-      // Log an info alert for caregiver visibility
-      store.addAlert({
-        patientId: patient.id,
-        patientName: patient.fullName,
-        urgency: "INFO",
-        title: `Medication Taken: ${med.name}`,
-        message: `${patient.preferredName} took ${med.name} (${med.dosage}) at ${new Date().toLocaleTimeString()}. ${args.notes ? 'Note: ' + args.notes : ''}`,
-        suggestedAction: "No action required. Adherence streak incremented."
-      });
+      if (args.status === "taken") {
+        const updatedMed = store.markMedicationTaken(args.medicationId);
+
+        if (!updatedMed) {
+          return {
+            success: false,
+            error: `Medication '${args.medicationId}' could not be marked as taken.`
+          };
+        }
+
+        store.addAlert({
+          patientId: patient.id,
+          patientName: patient.fullName,
+          urgency: "INFO",
+          title: `Medication Taken: ${med.name}`,
+          message: `${patient.preferredName} took ${med.name} (${med.dosage}) at ${new Date().toLocaleTimeString()}. ${args.notes ? "Note: " + args.notes : ""}`,
+          suggestedAction: "No action required. Adherence streak incremented."
+        });
+
+        return {
+          success: true,
+          status: "taken",
+          medicationName: med.name,
+          dosage: med.dosage,
+          takenTimestamp: med.lastTakenTimestamp,
+          currentStreak: patient.streakDays,
+          newAdherenceRate: `${patient.adherenceRate}%`,
+          message: `Great job, ${patient.preferredName}! You have successfully taken your ${med.name} ${med.dosage}. Your adherence streak is now ${patient.streakDays} days.`
+        };
+      }
+
+      if (args.status === "skipped") {
+        if (patient.emergencyContact.notifyOnMissedDose) {
+          store.addAlert({
+            patientId: patient.id,
+            patientName: patient.fullName,
+            urgency: "WARNING",
+            title: `Medication Skipped: ${med.name}`,
+            message: `${patient.preferredName} reported skipping ${med.name} (${med.dosage}). ${args.notes ? "Note: " + args.notes : ""}`,
+            suggestedAction: "Caregiver should follow up regarding the missed dose."
+          });
+        }
+
+        return {
+          success: true,
+          status: "skipped",
+          medicationName: med.name,
+          dosage: med.dosage,
+          takenToday: med.takenToday,
+          currentStreak: patient.streakDays,
+          newAdherenceRate: `${patient.adherenceRate}%`,
+          message: `${patient.preferredName}, your ${med.name} ${med.dosage} has been recorded as skipped. Your medication was not marked as taken.`
+        };
+      }
+
+      if (args.status === "delayed") {
+        store.addAlert({
+          patientId: patient.id,
+          patientName: patient.fullName,
+          urgency: "INFO",
+          title: `Medication Delayed: ${med.name}`,
+          message: `${patient.preferredName} reported delaying ${med.name} (${med.dosage}). ${args.notes ? "Note: " + args.notes : ""}`,
+          suggestedAction: "Follow the prescribed medication instructions and record the dose when taken."
+        });
+
+        return {
+          success: true,
+          status: "delayed",
+          medicationName: med.name,
+          dosage: med.dosage,
+          takenToday: med.takenToday,
+          currentStreak: patient.streakDays,
+          newAdherenceRate: `${patient.adherenceRate}%`,
+          message: `${patient.preferredName}, your ${med.name} ${med.dosage} has been recorded as delayed. It has not been marked as taken yet.`
+        };
+      }
 
       return {
-        success: true,
-        medicationName: med.name,
-        dosage: med.dosage,
-        takenTimestamp: med.lastTakenTimestamp,
-        currentStreak: patient.streakDays,
-        newAdherenceRate: `${patient.adherenceRate}%`,
-        message: `Great job, ${patient.preferredName}! You have successfully taken your ${med.name} ${med.dosage}. Your adherence streak is now ${patient.streakDays} days.`
+        success: false,
+        error: `Unsupported medication status: ${args.status}`
       };
     }
   }

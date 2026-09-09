@@ -134,4 +134,130 @@ test("MCP Server Suite", async (t) => {
     assert.equal(data.success, true);
     assert.equal(store.getPatient().streakDays, beforeStreak + 1);
   });
+
+  await t.test("tools/call: log_medication_dose skipped does not mark taken", async () => {
+    store.resetDailyMedications();
+
+    const beforeStreak = store.getPatient().streakDays;
+    const beforeAdherence = store.getPatient().adherenceRate;
+
+    const res = await server.handleJSONRPC({
+      jsonrpc: "2.0",
+      id: "call-6",
+      method: "tools/call",
+      params: {
+        name: "log_medication_dose",
+        arguments: {
+          patientId: "pt-88219",
+          medicationId: "med-01",
+          status: "skipped"
+        }
+      }
+    });
+
+    const data = JSON.parse(res.result.content[0].text);
+    const medication = store.getMedicationById("med-01");
+
+    assert.equal(data.success, true);
+    assert.equal(data.status, "skipped");
+    assert.equal(medication.takenToday, false);
+    assert.equal(store.getPatient().streakDays, beforeStreak);
+    assert.equal(store.getPatient().adherenceRate, beforeAdherence);
+  });
+
+  await t.test("tools/call: log_medication_dose delayed does not mark taken", async () => {
+    store.resetDailyMedications();
+
+    const beforeStreak = store.getPatient().streakDays;
+    const beforeAdherence = store.getPatient().adherenceRate;
+
+    const res = await server.handleJSONRPC({
+      jsonrpc: "2.0",
+      id: "call-7",
+      method: "tools/call",
+      params: {
+        name: "log_medication_dose",
+        arguments: {
+          patientId: "pt-88219",
+          medicationId: "med-01",
+          status: "delayed"
+        }
+      }
+    });
+
+    const data = JSON.parse(res.result.content[0].text);
+    const medication = store.getMedicationById("med-01");
+
+    assert.equal(data.success, true);
+    assert.equal(data.status, "delayed");
+    assert.equal(medication.takenToday, false);
+    assert.equal(store.getPatient().streakDays, beforeStreak);
+    assert.equal(store.getPatient().adherenceRate, beforeAdherence);
+  });
+
+  await t.test("tools/call: check_medication_schedule morning filter", async () => {
+    store.resetDailyMedications();
+
+    const res = await server.handleJSONRPC({
+      jsonrpc: "2.0",
+      id: "call-8",
+      method: "tools/call",
+      params: {
+        name: "check_medication_schedule",
+        arguments: {
+          patientId: "pt-88219",
+          timeOfDay: "morning"
+        }
+      }
+    });
+
+    const data = JSON.parse(res.result.content[0].text);
+    const names = data.pendingDoses.map(m => m.name);
+
+    assert.deepEqual(names, ["Lisinopril", "Metformin ER"]);
+  });
+
+  await t.test("tools/call: check_medication_schedule evening filter", async () => {
+    store.resetDailyMedications();
+
+    const res = await server.handleJSONRPC({
+      jsonrpc: "2.0",
+      id: "call-9",
+      method: "tools/call",
+      params: {
+        name: "check_medication_schedule",
+        arguments: {
+          patientId: "pt-88219",
+          timeOfDay: "evening"
+        }
+      }
+    });
+
+    const data = JSON.parse(res.result.content[0].text);
+    const names = data.pendingDoses.map(m => m.name);
+
+    assert.deepEqual(names, ["Metformin ER"]);
+  });
+
+  await t.test("tools/call: check_medication_schedule bedtime filter", async () => {
+    store.resetDailyMedications();
+
+    const res = await server.handleJSONRPC({
+      jsonrpc: "2.0",
+      id: "call-10",
+      method: "tools/call",
+      params: {
+        name: "check_medication_schedule",
+        arguments: {
+          patientId: "pt-88219",
+          timeOfDay: "bedtime"
+        }
+      }
+    });
+
+    const data = JSON.parse(res.result.content[0].text);
+    const names = data.pendingDoses.map(m => m.name);
+
+    assert.deepEqual(names, ["Atorvastatin Calcium"]);
+  });
 });

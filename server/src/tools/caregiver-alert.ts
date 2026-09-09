@@ -3,7 +3,7 @@ import { PatientStore, CaregiverAlert } from "../data/patient-store.js";
 export const caregiverAlertTools = [
   {
     name: "dispatch_caregiver_alert",
-    description: "Escalates a real-time notification to the patient's family, nurse, or designated emergency caregiver circle.",
+    description: "Creates a caregiver alert in the Vitalis AI caregiver portal simulation, recording the urgency, event details, and recommended caregiver action.",
     inputSchema: {
       type: "object",
       properties: {
@@ -52,11 +52,11 @@ export const caregiverAlertTools = [
             name: patient.emergencyContact.name,
             relationship: patient.emergencyContact.relationship,
             phone: patient.emergencyContact.phone,
-            channel: "Push Notification + SMS Fallback"
+            channel: "Caregiver Portal Simulation"
           }
         ],
         timestamp: newAlert.timestamp,
-        status: "DELIVERED_TO_CAREGIVER_PORTAL"
+        status: "RECORDED_IN_CAREGIVER_PORTAL"
       };
     }
   }

@@ -1,63 +1,109 @@
 # Hackathon Submission Details: Vitalis AI
 
 ## Project Title
-**Vitalis AI — Autonomous Multimodal Ambient Eldercare & Health Advocate on Alexa+**
+
+**Vitalis AI — AI Eldercare & Health Advocate on Alexa+**
 
 ## Elevator Pitch
-Vitalis AI is an autonomous, multimodal ambient care advocate built for Alexa+ using the Model Context Protocol (MCP Spec 2025-11-25) and Amazon Bedrock. It empowers seniors to live safely and independently through proactive voice check-ins, computer-vision pill bottle verification, and instant caregiver escalation.
+
+Vitalis AI is an Alexa+ healthcare-assistant prototype built around a self-hosted **Model Context Protocol (MCP)** server using MCP specification `2025-11-25` and **Streamable HTTP** transport. It combines deterministic healthcare-oriented workflows with **Amazon Bedrock** for conversational responses and an Echo Show-style web simulator for an interactive demonstration.
+
+The prototype focuses on medication routines, medication verification, symptom triage, vital summaries, and caregiver alerts. It uses a demo patient profile and simulated pill-verification and caregiver-portal workflows rather than connecting to real clinical systems or external emergency-notification services.
 
 ## Primary Track & Mini-Challenges
-* **Primary Track**: Alexa+
-* **Mini-Challenge 1**: AWS Builder (Amazon Bedrock integration)
-* **Mini-Challenge 2**: Open Source (MIT Licensed public repository)
+
+- **Primary Track:** Alexa+
+- **Mini-Challenge 1:** AWS Builder — Amazon Bedrock integration
+- **Mini-Challenge 2:** Open Source — MIT-licensed public repository
 
 ---
 
 ## Inspiration
-Over 54 million American seniors live alone or manage chronic illnesses. Families often worry constantly: *Did mom take her blood pressure medication this morning? Is she drinking enough water? What happens if she gets dizzy and falls?*
 
-While smart speakers like Amazon Echo are ubiquitous in homes, traditional voice assistants are fundamentally reactive. They wait to be addressed. If an elder is confused, takes the wrong pill, or experiences chest tightness, a passive assistant does nothing. 
+Families caring for older adults often worry about everyday health routines: Did a medication get taken? Is a scheduled dose still pending? What happens if concerning symptoms are reported?
 
-With the debut of **Alexa+**, the open **Model Context Protocol (MCP)**, and **Amazon Bedrock**, we realized we could bridge this gap: turning the Echo Show into an empathetic, proactive clinical partner that preserves elder dignity while granting family caregivers total peace of mind.
+Traditional voice assistants are primarily reactive. Vitalis AI explores a more coordinated experience in which a conversational assistant can use structured tools to manage routine health-related workflows while keeping the interaction simple for an older adult or caregiver.
+
+The project combines Alexa+ concepts, the open Model Context Protocol, Amazon Bedrock, and an Echo Show-style interface to demonstrate how an assistant could coordinate these workflows while maintaining clear boundaries between a hackathon simulation and real clinical infrastructure.
 
 ---
 
 ## What It Does
-1. **Proactive Multimodal Check-Ins**: Greets seniors naturally, assessing cognitive clarity, tracking water intake, and monitoring daily vitals.
-2. **Echo Show Computer Vision Pill Scanner**: The senior holds their pill bottle up to the smart display camera. Using Amazon Bedrock Computer Vision, Vitalis reads the prescription label, validates dosage, verifies that it matches the authorized doctor order, and sounds an immediate emergency alarm if a severe allergy (e.g. Penicillin) is detected.
-3. **Model Context Protocol (MCP) Integration**: Built on the latest **Streamable HTTP (spec 2025-11-25)** standard, providing 6 clinical tools for adherence tracking, symptom triage, and telemetry.
-4. **Caregiver Circle Escalation**: Dispatches real-time alerts to family members (e.g., David Vance) with categorized urgency levels (`INFO`, `WARNING`, `URGENT`, `EMERGENCY`) and actionable next steps.
-5. **Developer Live Inspector**: A built-in diagnostic drawer providing transparency into real-time JSON-RPC 2.0 tool requests, streaming SSE events, Bedrock latency, and token metrics.
+
+1. **Medication Routine Management:** Checks the demo patient's medication schedule, reports pending doses, and records medication states such as taken, skipped, or delayed.
+
+2. **Pill Verification Simulation:** Demonstrates a predefined pill-bottle verification workflow that checks medication identity, dosage, prescription matching, expiration, and allergy-safety scenarios against the demo patient's medication profile.
+
+3. **Model Context Protocol Integration:** Provides 6 MCP tools through the official MCP TypeScript SDK and Streamable HTTP transport using MCP specification `2025-11-25`.
+
+4. **Symptom Triage Workflow:** Detects configured emergency red flags, assigns a severity level, records caregiver alerts, and uses Amazon Bedrock to generate an empathetic conversational response.
+
+5. **Caregiver Portal Simulation:** Records caregiver alerts with urgency levels (`INFO`, `WARNING`, `URGENT`, `EMERGENCY`), event details, and suggested actions.
+
+6. **Developer Telemetry:** Provides a separate SSE dashboard telemetry stream for observing MCP-related activity and tool execution.
 
 ---
 
 ## How We Built It
-* **Alexa+ MCP Backend**: Node.js & TypeScript implementing the Model Context Protocol over Streamable HTTP and Server-Sent Events (SSE).
-* **AI Core**: Amazon Bedrock (`anthropic.claude-3-5-sonnet-20241022-v2:0` & AWS Nova) for clinical symptom reasoning and multimodal optical bottle verification.
-* **Echo Show Simulator**: React 18, Vite, and Tailwind CSS mimicking the ambient smart-display interface of the Echo Show 15 / 21.
-* **Voice Synthesis & Recognition**: Browser Web Speech API providing natural speech recognition and elder-friendly vocal feedback.
+
+- **Alexa+ MCP Backend:** Node.js and TypeScript implementing the Model Context Protocol with the official MCP SDK and Streamable HTTP transport.
+- **MCP Tools:** Six structured tools covering medication schedules, dose logging, pill-verification simulation, symptom triage, caregiver alerts, and demo vital summaries.
+- **AI Core:** Amazon Bedrock is used for conversational responses within the symptom-triage workflow.
+- **Echo Show Simulator:** React, Vite, and Tailwind CSS provide the smart-display-style web interface.
+- **Voice Interaction:** Browser Web Speech API capabilities provide speech recognition and spoken feedback within the simulator.
+- **Demo Data:** A local patient store provides deterministic demo medication, vital, and caregiver-alert state for repeatable testing.
 
 ---
 
 ## Challenges We Overcame
-1. **Navigating the Brand-New Alexa+ MCP Spec (2025-11-25)**: Implementing the Streamable HTTP transport and Server-Sent Events protocol required careful handling of connection heartbeats and chunked JSON-RPC streams.
-2. **Clinical Hallucination Guardrails**: In healthcare, an AI cannot guess. We engineered strict prompt boundaries and deterministic tool validations to ensure that dangerous drug allergies and emergency red flags are never ignored.
+
+### Implementing MCP Streamable HTTP
+
+The project evolved from a manual JSON-RPC implementation to the official MCP TypeScript SDK. We implemented stateful Streamable HTTP sessions, MCP initialization, tool discovery, tool execution, and GET/DELETE session handling around the official transport.
+
+### Keeping Safety-Oriented Logic Deterministic
+
+Healthcare-related demonstrations need predictable behavior. The medication and symptom workflows use explicit application logic for medication states and configured emergency red flags, while Amazon Bedrock is used for the conversational response layer rather than being treated as the source of deterministic safety rules.
+
+### Building a Useful Demo Without Real Clinical Infrastructure
+
+The prototype needed to demonstrate the user experience without connecting to real patient records, pharmacies, emergency services, or caregiver messaging systems. We therefore separated deterministic demo data and simulations from external integrations and documented those boundaries clearly.
 
 ---
 
 ## Accomplishments We're Proud Of
-* Sub-50ms tool execution over Streamable HTTP.
-* Complete visual simulation of the Echo Show smart display experience with zero hardware prerequisites.
-* Comprehensive test suite verifying all MCP endpoints and tool behaviors.
+
+- A working self-hosted MCP server using the official MCP TypeScript SDK and Streamable HTTP transport.
+- MCP `2025-11-25` initialization and tool discovery verified through real HTTP requests.
+- Six working MCP tools with automated regression coverage for medication behavior and time-of-day filtering.
+- An Echo Show-style web simulator that demonstrates the healthcare-assistant experience without requiring physical hardware.
+- Clear separation between deterministic workflow logic, simulated healthcare integrations, and the Amazon Bedrock conversational layer.
+- An MIT-licensed public repository with setup instructions and automated tests.
 
 ---
 
 ## What We Learned
-The Model Context Protocol is a transformative standard for voice AI. Moving from brittle rigid skills to dynamic, tool-calling agentic architectures allows voice assistants to adapt to human nuance in ways never before possible.
+
+The Model Context Protocol provides a useful way to expose structured capabilities to an AI assistant without tightly coupling the assistant to individual application interfaces.
+
+We also learned that healthcare-oriented prototypes benefit from clearly separating deterministic workflow rules from generative conversational behavior. That separation makes demonstrations easier to test, explain, and evolve.
 
 ---
 
 ## What's Next for Vitalis AI
-* Integration with Amazon Pharmacy and PillPack for automated one-click refills.
-* Smart home radar sensing (via Echo device ambient sensing) to detect sudden falls without wearable pendants.
-* FHIR / HL7 clinical EHR integration to sync directly with primary care physicians.
+
+Future versions could connect the prototype to real-world services and standards, subject to appropriate security, privacy, consent, and clinical requirements:
+
+- Integration with medication and pharmacy services for refill workflows.
+- Optional smart-home or device integrations for additional ambient context.
+- FHIR / HL7 integrations for appropriately authorized clinical data exchange.
+- Production caregiver notification services with authenticated delivery and audit trails.
+- Additional Alexa+ integrations and richer multimodal interactions.
+
+---
+
+## Prototype & Safety Notice
+
+Vitalis AI is a **hackathon prototype and demonstration**, not a medical device or clinical decision-support system.
+
+It uses a demo patient profile and simulated healthcare workflows. It does not replace professional medical advice, emergency services, clinical systems, or real caregiver notification infrastructure.
