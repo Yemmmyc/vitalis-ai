@@ -20,7 +20,7 @@ export const VitalsWidget: React.FC<VitalsWidgetProps> = ({ patient, onAddWater 
           </div>
           <div>
             <h2 className="text-lg font-bold text-white tracking-tight">Biometric Vitals & Health</h2>
-            <p className="text-xs text-slate-400">Ambient telemetry synced with Amazon Bedrock</p>
+            <p className="text-xs text-slate-400">Health telemetry available to the Vitalis AI response layer</p>
           </div>
         </div>
         <span className="text-[11px] text-slate-400 font-medium">Updated just now</span>

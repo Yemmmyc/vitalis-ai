@@ -73,7 +73,7 @@ export const PillScannerModal: React.FC<PillScannerModalProps> = ({ isOpen, onCl
               <span>AI_BOUNDING_BOX: ACTIVE</span>
             </div>
             <div className="flex justify-between text-[11px] font-mono text-sky-400">
-              <span>OPTICAL_OCR: BEDROCK_VISION</span>
+              <span>VISION_ENGINE: SIMULATED_VERIFICATION</span>
               <span>CONFIDENCE: 98.5%</span>
             </div>
           </div>
@@ -86,7 +86,7 @@ export const PillScannerModal: React.FC<PillScannerModalProps> = ({ isOpen, onCl
               Hold bottle facing the Echo Show camera
             </p>
             <p className="text-xs text-slate-400 max-w-sm mt-1">
-              Vitalis AI uses Bedrock Multimodal Vision to inspect the drug name, dosage, expiration, and patient name.
+              Vitalis AI uses a simulated pill-bottle verification workflow to check drug identity, dosage, expiration, and patient safety rules.
             </p>
           </div>
         </div>

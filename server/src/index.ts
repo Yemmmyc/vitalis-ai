@@ -381,7 +381,11 @@ app.post("/api/chat", async (req: Request, res: Response) => {
   let spokenResponse = "";
 
   if (
-    lower.includes("take") &&
+    !lower.includes("what pills") &&
+    !lower.includes("do i need to take") &&
+    !lower.includes("schedule") &&
+    !lower.includes("did i take") &&
+    (lower.includes("take") || lower.includes("took") || lower.includes("taken")) &&
     (
       lower.includes("pill") ||
       lower.includes("medication") ||

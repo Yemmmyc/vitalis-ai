@@ -89,13 +89,13 @@ export class BedrockService {
   private simulateBedrockResponse(prompt: string, systemPrompt?: string): string {
     const lower = prompt.toLowerCase();
     if (lower.includes("chest pain") || lower.includes("heart") || lower.includes("cannot breathe") || lower.includes("shortness of breath")) {
-      return "Eleanor, hearing that you are feeling chest discomfort is very serious. Please sit down immediately and do not exert yourself. Because chest pain can indicate a cardiac event, I am notifying David and alerting emergency services right now. Are you able to take slow, gentle breaths?";
+      return "Eleanor, hearing that you are feeling chest discomfort is very serious. Please sit down immediately and do not exert yourself. Because chest pain can indicate a cardiac event, I have recorded a high-priority caregiver alert in the Vitalis AI Caregiver Portal for David to review. Are you able to take slow, gentle breaths?";
     }
     if (lower.includes("pill") || lower.includes("medication") || lower.includes("lisinopril") || lower.includes("metformin")) {
       return "Good morning, Eleanor! Looking at your health schedule, your morning doses are Lisinopril 20mg for your blood pressure and Metformin 500mg. You have not marked them as taken yet. Would you like me to guide you through taking them with a glass of water?";
     }
     if (lower.includes("dizzy") || lower.includes("fall") || lower.includes("unsteady")) {
-      return "I'm concerned to hear you feel dizzy. Please hold onto a sturdy chair or sit down immediately so you stay safe from falling. Your Lisinopril can sometimes cause slight dizziness when standing up quickly. I am logging this and sending a note to David to check in on you. Can you sit down for a few minutes?";
+      return "I'm concerned to hear you feel dizzy. Please hold onto a sturdy chair or sit down immediately so you stay safe from falling. Your Lisinopril can sometimes cause slight dizziness when standing up quickly. I have recorded a caregiver alert in the Vitalis AI Caregiver Portal for David to review. Can you sit down for a few minutes?";
     }
     if (lower.includes("water") || lower.includes("hydrat") || lower.includes("drink")) {
       return "You've logged 5 glasses of water today, Eleanor! That's wonderful progress toward your 8-glass goal. Staying well-hydrated helps keep your kidneys healthy and prevents blood pressure drops.";

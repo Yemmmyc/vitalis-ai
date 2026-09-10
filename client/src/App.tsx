@@ -175,7 +175,7 @@ export const App: React.FC = () => {
               <span className="text-[11px] text-slate-400">Streamable HTTP MCP</span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed mb-4">
-              Vitalis AI demonstrates how Alexa+ transforms from reactive speakers into proactive clinical advocates using open Model Context Protocol tools and Amazon Bedrock multi-agent reasoning.
+              Vitalis AI demonstrates how Alexa+ can support proactive care coordination using open Model Context Protocol tools and Amazon Bedrock conversational responses.
             </p>
             <div className="flex flex-wrap gap-2">
               <button

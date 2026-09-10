@@ -75,7 +75,7 @@ export const DeveloperInspector: React.FC<DeveloperInspectorProps> = ({
               : 'border-transparent text-slate-400 hover:text-slate-200'
           }`}
         >
-          Live JSON-RPC Stream ({logs.length})
+          Live Dashboard Telemetry ({logs.length})
         </button>
         <button
           onClick={() => setActiveTab('tools')}
