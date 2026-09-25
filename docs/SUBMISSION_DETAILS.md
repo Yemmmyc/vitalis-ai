@@ -14,7 +14,7 @@ The prototype focuses on medication routines, medication verification, symptom t
 
 - **Primary Track:** Alexa+
 - **Mini-Challenge 1:** AWS Builder — Amazon Bedrock integration
-- **Mini-Challenge 2:** Open Source — MIT-licensed public repository
+- **Mini-Challenge 2:** Open Source — qualifying open-source project/contribution documented separately
 
 ---
 

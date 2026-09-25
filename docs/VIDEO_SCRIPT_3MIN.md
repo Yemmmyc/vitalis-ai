@@ -1,49 +1,56 @@
 # 3-Minute Video Script & Storyboard: Vitalis AI
 
-> **Target Duration**: Exactly 2 minutes 45 seconds (Under the strict 3-minute hackathon cutoff).  
-> **Speaker**: Clear, confident, energetic.  
-> **Platform**: YouTube or Vimeo (Public, in English).  
+> **Target Duration**: 2 minutes 45 seconds (Under the 3-minute hackathon cutoff).
+> **Speaker**: Clear, articulate, developer-focused narration.
+> **Platform**: YouTube or Vimeo (Public, English).
 
 ---
 
-### [0:00 - 0:25] ACT I: THE HOOK & THE CRISIS (25 Seconds)
-* **Visual**: Close-up of an elderly woman holding a pill bottle, looking confused. Then cut to an Amazon Echo Show sitting on a kitchen counter.
+### [0:00 - 0:25] Section 1: Introduction & Problem Context (25 Seconds)
+* **Visual**: Screen recording of the **Vitalis AI** interface in the Echo Show-style web display simulator.
 * **Narration**:
-  > *"Every day, over 54 million seniors in America face the challenge of living independently. We bought them Echo devices so they can stay connected, but let's be honest: traditional voice assistants are completely passive. If an aging parent forgets their blood pressure pills, gets dizzy, or takes the wrong bottle, Alexa does nothing.*  
-  > *Until now. Welcome to **Vitalis AI**—the first autonomous, multimodal ambient health advocate built for **Alexa+**."*
+  > *"Managing daily medication routines and staying aware of sudden health symptoms can be challenging for older adults living independently, as well as for their family caregivers. Traditional voice interactions often lack structured tool coordination.
+  > *Welcome to **Vitalis AI**—a hackathon prototype and Echo Show-style web simulator built for the Alexa+ track, demonstrating how open tool protocols and generative AI can coordinate daily health workflows."*
 
 ---
 
-### [0:25 - 1:15] ACT II: PROACTIVE AMBIENT CARE & THE MCP STANDARD (50 Seconds)
-* **Visual**: Screen capture of the **Vitalis AI Echo Show Smart Display Simulator** running live at `http://localhost:4000`. Show the live clock, morning routine, and glowing Alexa+ ring.
+### [0:25 - 1:10] Section 2: Alexa+ Concept & Model Context Protocol (45 Seconds)
+* **Visual**: Main screen of the Echo Show smart display simulator. Demonstrate asking: *"Alexa, what pills do I need to take today?"* Highlight the `check_medication_schedule` tool execution badge.
 * **Narration**:
-  > *"Vitalis AI is built on the brand new **Model Context Protocol specification (2025-11-25)** using **Streamable HTTP**.*  
-  > *Watch how it works. When 78-year-old Eleanor enters the kitchen, Alexa+ proactively greets her.*  
-  > *(Voice Demo)*: 'Alexa, what pills do I need to take today?'  
-  > *Instantly, Alexa invokes our self-hosted MCP server tool, `check_medication_schedule`. It checks Eleanor's prescriptions and answers with warmth: 'Good morning Eleanor! You have Lisinopril 20mg and Metformin 500mg pending. You're on an incredible 14-day streak!'*  
-  > *With one touch or voice confirmation, the dose is logged, updating her streak and clinical record."*
+  > *"Vitalis AI connects to a self-hosted Model Context Protocol (MCP) server matching specification **2025-11-25** using the official **Streamable HTTP** transport with stateful sessions.
+  > *When a user asks, 'Alexa, what pills do I need to take today?', the assistant invokes our `check_medication_schedule` MCP tool. The tool retrieves scheduled doses, adherence status, and streak information from the demo profile.
+  > *Users can confirm taking a dose, invoking `log_medication_dose` to update the demo medication state."*
 
 ---
 
-### [1:15 - 2:00] ACT III: COMPUTER VISION SAFETY WITH AMAZON BEDROCK (45 Seconds)
-* **Visual**: Click the **"Camera Pill Scanner"** button. Show the camera HUD bounding box overlay. Select the "Penicillin Mismatch" test sample.
+### [1:10 - 1:45] Section 3: Medication Safety Simulation (35 Seconds)
+* **Visual**: Open the **"Camera Pill Scanner"** modal. Select the **Amoxicillin / Penicillin** test preset. Show the resulting `CRITICAL_ALLERGY_ALERT` warning banner and simulation details.
 * **Narration**:
-  > *"Now, here is the real game-changer: multimodal safety. Medication errors are the #1 cause of accidental senior hospitalizations.*  
-  > *Eleanor holds a bottle up to the Echo Show camera. Vitalis AI immediately triggers our `verify_pill_bottle_vision` tool powered by **Amazon Bedrock Multimodal Vision**.*  
-  > *Bedrock reads the curved label, extracts the Rx number, and checks her allergy records. Watch this red alert: 'CRITICAL ALLERGY DETECTED: Amoxicillin Penicillin'. Vitalis instantly blocks the dose and dispatches an emergency alert to her son David's phone before she can take it."*
+  > *"Next, we demonstrate our medication verification workflow via the `verify_pill_bottle_vision` tool.
+  > *This workflow operates as a predefined safety simulation. By selecting the Amoxicillin test preset, the system evaluates the medication identity against the patient's record and detects a critical penicillin allergy.
+  > *The system blocks the dose, displays a prominent safety warning, and records a simulated caregiver alert into the portal."*
 
 ---
 
-### [2:00 - 2:30] ACT IV: EMERGENCY ESCALATION & DEVELOPER TRANSPARENCY (30 Seconds)
-* **Visual**: Click open the **"Caregiver Portal"** showing David Vance's live feed. Then slide open the **"MCP Inspector Drawer"** showing real-time JSON-RPC 2.0 streaming events.
+### [1:45 - 2:20] Section 4: Symptom Triage & Caregiver Portal Simulation (35 Seconds)
+* **Visual**: Select or type: *"I am feeling sudden tight chest pain"*. Show the triage result, then open the **"Caregiver Portal"** modal to display the recorded emergency alert.
 * **Narration**:
-  > *"On the Caregiver Portal, David receives real-time visibility into her vitals, medication adherence, and alerts.*  
-  > *And for developers and judges: our live **MCP Inspector** shows the sub-50ms Streamable HTTP event stream in real time—verifying every JSON-RPC tool call, Bedrock token count, and latency metric."*
+  > *"For symptom responses, the `evaluate_health_symptoms` tool applies configured emergency red-flag rules. When a severe symptom like chest pain is reported, deterministic safety rules trigger an emergency alert.
+  > *Amazon Bedrock integration—or local Bedrock emulation when live access is unavailable—provides the empathetic conversational text response layer.
+  > *Alert details, urgency levels, and suggested actions are recorded directly into the simulated caregiver oversight portal."*
 
 ---
 
-### [2:30 - 2:45] ACT V: CONCLUSION & CALL TO ACTION (15 Seconds)
-* **Visual**: Full overview of the Vitalis AI dashboard with the tagline: *"Empowering Independent Aging with Alexa+ & Amazon Bedrock"*.
+### [2:20 - 2:40] Section 5: Developer Transparency & MCP Inspector (20 Seconds)
+* **Visual**: Click to slide open the **"Alexa+ MCP Inspector"** drawer. Point out spec `2025-11-25`, the Streamable HTTP transport badge, 6 registered tools, and live JSON-RPC telemetry log.
 * **Narration**:
-  > *"Vitalis AI proves how the Model Context Protocol and Amazon Bedrock transform Alexa+ from a reactive gadget into a compassionate, life-saving companion.*  
-  > *Thank you, and let's shape the future of ambient care together!"*
+  > *"For developer transparency, our embedded **MCP Inspector** displays the server status and live JSON-RPC event log.
+  > *Judges can inspect the six registered MCP tools and observe real-time requests and responses. A separate Server-Sent Events (SSE) endpoint provides this dashboard telemetry stream alongside the primary Streamable HTTP transport."*
+
+---
+
+### [2:40 - 2:55] Section 6: Summary & Closing (15 Seconds)
+* **Visual**: Full overview of the Vitalis AI Echo Show smart display dashboard with prototype notice.
+* **Narration**:
+  > *"Vitalis AI demonstrates how the open Model Context Protocol, Alexa+ concepts, and Amazon Bedrock can work together to coordinate structured eldercare workflows within clear prototype boundaries.
+  > *Thank you for reviewing Vitalis AI for the Amazon Developer Hackathon!"*

@@ -53,7 +53,7 @@ export const PillScannerModal: React.FC<PillScannerModalProps> = ({ isOpen, onCl
             </div>
             <div>
               <h3 className="text-lg font-bold text-white">Echo Show Pill Bottle Camera Scanner</h3>
-              <p className="text-xs text-slate-400">Multimodal Computer Vision • Amazon Bedrock • Rx Verification</p>
+              <p className="text-xs text-slate-400">Simulated Pill Verification • Rx Safety Checks</p>
             </div>
           </div>
           <button
@@ -176,7 +176,7 @@ export const PillScannerModal: React.FC<PillScannerModalProps> = ({ isOpen, onCl
             {isScanning ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Analyzing Bottle with Bedrock...</span>
+                <span>Analyzing Bottle...</span>
               </>
             ) : (
               <>

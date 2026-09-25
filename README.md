@@ -189,7 +189,7 @@ Buld_Ship_Shape/
 
 - **Primary Track — Alexa+**: Self-hosted MCP server using Streamable HTTP and MCP specification `2025-11-25`, demonstrated through an Echo Show-style web simulator.
 - **Mini-Challenge — AWS Builder**: Integrates Amazon Bedrock into the healthcare-assistant workflow for AI-generated conversational responses.
-- **Mini-Challenge — Open Source**: Released as an MIT-licensed public GitHub project.
+- **Mini-Challenge — Open Source**: The project is released as an MIT-licensed public GitHub repository. The hackathon submission will document the qualifying open-source project/contribution separately.
 - **Bonus — Friction Logs**: Development experience and integration challenges are documented in `docs/FRICTION_LOG.md`.
 
 ---

@@ -20,12 +20,12 @@ export const DeveloperInspector: React.FC<DeveloperInspectorProps> = ({
   if (!isOpen) return null;
 
   const toolsList = [
-    { name: "check_medication_schedule", desc: "Lookup daily prescriptions and adherence streak" },
-    { name: "log_medication_dose", desc: "Updates patient medication record and streaks" },
-    { name: "verify_pill_bottle_vision", desc: "Multimodal Bedrock computer vision bottle inspection" },
-    { name: "evaluate_health_symptoms", desc: "Clinical symptom triage & red flag escalation" },
-    { name: "dispatch_caregiver_alert", desc: "Real-time caregiver alert push via webhooks" },
-    { name: "get_daily_vital_summary", desc: "BP, glucose, heart rate, hydration telemetry" }
+    { name: "check_medication_schedule", desc: "Retrieves the demo patient's scheduled medications, dosage instructions, adherence status, and current streak." },
+    { name: "log_medication_dose", desc: "Records a scheduled medication as taken, skipped, or delayed and updates the demo medication state accordingly." },
+    { name: "verify_pill_bottle_vision", desc: "Simulated pill-bottle verification using predefined safety scenarios for medication identity, dosage, prescription matching, expiration, and allergy checks." },
+    { name: "evaluate_health_symptoms", desc: "Symptom triage workflow that applies configured emergency red-flag rules, records caregiver alerts when appropriate, and generates an empathetic response through the Bedrock integration." },
+    { name: "dispatch_caregiver_alert", desc: "Records caregiver alerts in the Vitalis AI caregiver portal simulation with urgency, event details, and suggested caregiver action." },
+    { name: "get_daily_vital_summary", desc: "Returns the demo patient's latest vital information, including blood pressure, heart rate, blood glucose, hydration, and sleep." }
   ];
 
   return (
@@ -53,7 +53,7 @@ export const DeveloperInspector: React.FC<DeveloperInspectorProps> = ({
       <div className="grid grid-cols-3 gap-2 p-4 border-b border-slate-800/80 bg-slate-900/30 text-xs">
         <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
           <span className="text-[10px] text-slate-500 uppercase font-mono block">Transport</span>
-          <span className="font-semibold text-emerald-400 font-mono">Streamable HTTP / SSE</span>
+          <span className="font-semibold text-emerald-400 font-mono">Streamable HTTP</span>
         </div>
         <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
           <span className="text-[10px] text-slate-500 uppercase font-mono block">AI Core</span>
@@ -152,13 +152,13 @@ export const DeveloperInspector: React.FC<DeveloperInspectorProps> = ({
             <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
               <h4 className="font-bold text-white mb-2">Alexa+ Open Protocol Compliance</h4>
               <p>
-                Vitalis AI implements a self-hosted Model Context Protocol (MCP) server matching spec version <strong>2025-11-25</strong>. It utilizes Streamable HTTP with Server-Sent Events (SSE) for sub-50ms tool execution and bi-directional notifications.
+                Vitalis AI implements the Model Context Protocol (MCP) specification <strong>2025-11-25</strong> using the official Streamable HTTP transport. A separate Server-Sent Events (SSE) endpoint provides dashboard telemetry for observing MCP activity.
               </p>
             </div>
             <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
               <h4 className="font-bold text-white mb-2">Amazon Bedrock Integration</h4>
               <p>
-                Powered by Amazon Bedrock (Claude 3.5 Sonnet / AWS Nova) for multimodal pill label OCR verification, allergy safety validation, and clinical triage decisioning.
+                Amazon Bedrock integration provides natural-language generation for the symptom-triage workflow. The application supports local Bedrock emulation when live AWS access is unavailable.
               </p>
             </div>
           </div>
