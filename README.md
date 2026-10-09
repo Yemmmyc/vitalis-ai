@@ -10,7 +10,8 @@
 > **Built for the Amazon Developer Hackathon: Build, Ship, Shape (2026)**  
 > **Primary Track:** Alexa+  
 > **Mini-Challenges:** AWS Builder & Open Source  
-> **Submission Release:** [Vitalis Care v1.0.1](https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.1) (Previous: [v1.0.0](https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.0))
+> **Submission Release:** [Vitalis Care v1.0.1](https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.1) (Previous: [v1.0.0](https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.0))  
+> **Product Naming Distinction:** **Vitalis AI** is the overall project/submission name; **Vitalis Care** is the user-facing Android app brand on the device (`com.vitalis.app`).
 
 ---
 
@@ -120,13 +121,15 @@ Vitalis AI has undergone rigorous automated and physical verification:
 2. **Production Web & Backend Build**:
    - `npm run build` completed with zero TypeScript errors or bundling warnings.
 3. **Android Application & Physical Device Verification**:
+   - **User-Facing App Brand**: **Vitalis Care** (`application-label: Vitalis Care`, package: `com.vitalis.app`).
    - **Target Device**: Physical Tecno Spark 20 (`TECNO_KJ7`, Android 13 / API 33).
-   - **Permissions Verified**: `android.permission.RECORD_AUDIO` and `android.permission.MODIFY_AUDIO_SETTINGS` confirmed via AAPT.
+   - **Permissions Verified**: `android.permission.RECORD_AUDIO` and `android.permission.MODIFY_AUDIO_SETTINGS` confirmed via AAPT badging.
    - **Native TTS Verification**: Verified audible spoken responses via `@capacitor-community/text-to-speech`.
    - **Layout Verification**: Mobile screen-fit verified on physical 720x1612 display.
-   - **APK Output**: `android/app/build/outputs/apk/debug/app-debug.apk`
-   - **APK Size**: `4,282,494 bytes` (~4.08 MB)
-   - **SHA-256 Checksum**: `2EBAF84884BA2FE6395F5E49D6E6374777A6D9FF918431B905354A7DB26661A1`
+   - **APK Output Asset**: `release-artifacts/Vitalis-Care-v1.0.1.apk` (build output: `android/app/build/outputs/apk/debug/app-debug.apk`)
+   - **APK Filename**: `Vitalis-Care-v1.0.1.apk`
+   - **APK Size**: `4,491,016 bytes` (~4.28 MB)
+   - **SHA-256 Checksum**: `663F336628D278B6CE5C14530EAD1182BB6BF8B4CFA105E9D35A822442529248`
 
 ---
 
@@ -187,19 +190,25 @@ npm run dev
 
 ## 📱 Android APK Build & Installation
 
-To sync and build the Android application locally:
+To sync and build the user-facing Android app (**Vitalis Care**) locally:
 
 ```bash
 # 1. Sync web assets with Capacitor Android wrapper
 npx cap sync android
 
 # 2. Compile Debug APK using Gradle
+# On Windows (PowerShell / Command Prompt):
 cd android
 .\gradlew.bat assembleDebug
 cd ..
 
+# On Linux / macOS / WSL:
+cd android
+./gradlew assembleDebug
+cd ..
+
 # 3. Install on connected physical Android device via ADB
-adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+adb install -r release-artifacts/Vitalis-Care-v1.0.1.apk
 ```
 
 ---
