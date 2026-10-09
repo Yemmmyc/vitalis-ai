@@ -1,6 +1,6 @@
 {
   "appId": "com.vitalis.app",
-  "appName": "Vitalis AI",
+  "appName": "Vitalis Care",
   "webDir": "client/dist",
   "server": {
     "androidScheme": "https"

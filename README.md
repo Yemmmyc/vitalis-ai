@@ -10,7 +10,7 @@
 > **Built for the Amazon Developer Hackathon: Build, Ship, Shape (2026)**  
 > **Primary Track:** Alexa+  
 > **Mini-Challenges:** AWS Builder & Open Source  
-> **Submission Release:** [QAF 2.0 Product Submission v1.0.0](https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.0)
+> **Submission Release:** [Vitalis Care v1.0.1](https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.1) (Previous: [v1.0.0](https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.0))
 
 ---
 
@@ -215,8 +215,9 @@ adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 ## 🔗 Official Repository & QAF 2.0 Release Links
 
 - **GitHub Repository**: [https://github.com/Yemmmyc/vitalis-ai](https://github.com/Yemmmyc/vitalis-ai)
-- **QAF 2.0 GitHub Release**: [https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.0](https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.0)
-- **Direct APK Download**: [https://github.com/Yemmmyc/vitalis-ai/releases/download/v1.0.0/app-debug.apk](https://github.com/Yemmmyc/vitalis-ai/releases/download/v1.0.0/app-debug.apk)
+- **Latest Release (v1.0.1 - Vitalis Care)**: [https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.1](https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.1)
+- **Direct APK Download (v1.0.1)**: [https://github.com/Yemmmyc/vitalis-ai/releases/download/v1.0.1/Vitalis-Care-v1.0.1.apk](https://github.com/Yemmmyc/vitalis-ai/releases/download/v1.0.1/Vitalis-Care-v1.0.1.apk)
+- **Initial Release (v1.0.0)**: [https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.0](https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.0)
 
 ---
 

@@ -38,7 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="font-extrabold tracking-tight text-lg sm:text-xl text-white">Vitalis<span className="text-sky-400">AI</span></span>
+              <span className="font-extrabold tracking-tight text-lg sm:text-xl text-white">Vitalis <span className="text-sky-400">Care</span></span>
               <span className="px-1.5 py-0.5 text-[10px] sm:text-[11px] font-semibold tracking-wider rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">ALEXA+</span>
             </div>
             <p className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Echo Show Smart Display Edition</p>

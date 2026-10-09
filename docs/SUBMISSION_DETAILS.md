@@ -37,10 +37,11 @@ Vitalis AI is an autonomous eldercare assistant and health advocate built around
 - **Automated Tests**: 13 / 13 passing unit tests validating protocol handshakes, tool discovery, dose state logic, time-of-day filters, and triage workflows.
 - **Production Web Build**: Clean `npm run build` execution outputting optimized web assets and compiled server code.
 - **Android APK Build & Physical Hardware Test**:
-  - Compiled Debug APK: `android/app/build/outputs/apk/debug/app-debug.apk`
-  - File Size: `4,282,494 bytes` (4.08 MB)
-  - SHA-256 Checksum: `2EBAF84884BA2FE6395F5E49D6E6374777A6D9FF918431B905354A7DB26661A1`
-  - Physical Device Test: Installed via ADB on physical Tecno Spark 20 (`TECNO_KJ7`), confirming native Text-To-Speech audio output, voice input, and responsive mobile layout.
+  - User-Facing App Name: **Vitalis Care** (`application-label: Vitalis Care`, package: `com.vitalis.app`)
+  - Saved Release Asset: `release-artifacts/Vitalis-Care-v1.0.1.apk`
+  - File Size: `4,491,016 bytes` (4.28 MB)
+  - SHA-256 Checksum: `663F336628D278B6CE5C14530EAD1182BB6BF8B4CFA105E9D35A822442529248`
+  - Physical Device Test: Streamed ADB update verified on physical Tecno Spark 20 (`TECNO_KJ7`), confirming launcher label **Vitalis Care**, package update, native Text-To-Speech audio output, voice input, and responsive mobile screen-fit layout.
 
 ---
 
@@ -54,5 +55,6 @@ Vitalis AI is an autonomous eldercare assistant and health advocate built around
 ## 🔗 Submission URLs & Asset Links
 
 - **Public GitHub Repository**: [https://github.com/Yemmmyc/vitalis-ai](https://github.com/Yemmmyc/vitalis-ai)
-- **GitHub Release Page**: [https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.0](https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.0)
-- **Direct APK Download URL**: [https://github.com/Yemmmyc/vitalis-ai/releases/download/v1.0.0/app-debug.apk](https://github.com/Yemmmyc/vitalis-ai/releases/download/v1.0.0/app-debug.apk)
+- **Latest Release (v1.0.1 - Vitalis Care)**: [https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.1](https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.1)
+- **Direct APK Download URL (v1.0.1)**: [https://github.com/Yemmmyc/vitalis-ai/releases/download/v1.0.1/Vitalis-Care-v1.0.1.apk](https://github.com/Yemmmyc/vitalis-ai/releases/download/v1.0.1/Vitalis-Care-v1.0.1.apk)
+- **Initial Release (v1.0.0)**: [https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.0](https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.0)
