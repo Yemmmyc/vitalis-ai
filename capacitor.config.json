@@ -1,0 +1,8 @@
+{
+  "appId": "com.vitalis.app",
+  "appName": "Vitalis AI",
+  "webDir": "client/dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

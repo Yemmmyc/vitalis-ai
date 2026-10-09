@@ -11,23 +11,23 @@ export const VitalsWidget: React.FC<VitalsWidgetProps> = ({ patient, onAddWater 
   if (!patient) return null;
 
   return (
-    <div className="glass-card rounded-3xl p-6 shadow-xl relative overflow-hidden">
+    <div className="glass-card rounded-3xl p-4 sm:p-6 shadow-xl relative overflow-hidden max-w-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
-            <Activity className="w-5 h-5" />
+      <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-3 mb-4 sm:mb-5">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30 shrink-0">
+            <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white tracking-tight">Biometric Vitals & Health</h2>
-            <p className="text-xs text-slate-400">Health telemetry available to the Vitalis AI response layer</p>
+            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">Biometric Vitals & Health</h2>
+            <p className="text-[11px] sm:text-xs text-slate-400">Health telemetry for Vitalis AI</p>
           </div>
         </div>
-        <span className="text-[11px] text-slate-400 font-medium">Updated just now</span>
+        <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium shrink-0">Updated just now</span>
       </div>
 
       {/* Grid of Vitals Cards */}
-      <div className="grid grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
         {/* Blood Pressure */}
         <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 hover:border-slate-700 transition-all">
           <div className="flex items-center justify-between text-xs text-slate-400 mb-1">

@@ -11,30 +11,30 @@ export const MedicationWidget: React.FC<MedicationWidgetProps> = ({ patient, onT
   if (!patient) return null;
 
   return (
-    <div className="glass-card rounded-3xl p-6 relative overflow-hidden shadow-xl">
+    <div className="glass-card rounded-3xl p-4 sm:p-6 relative overflow-hidden shadow-xl max-w-full">
       {/* Decorative background glow */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/30">
-            <Clock className="w-5 h-5" />
+      <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-3 mb-4 sm:mb-5">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/30 shrink-0">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white tracking-tight">Today's Medications</h2>
-            <p className="text-xs text-slate-400">Scheduled regimens for {patient.preferredName}</p>
+            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">Today's Medications</h2>
+            <p className="text-[11px] sm:text-xs text-slate-400">Scheduled regimens for {patient.preferredName}</p>
           </div>
         </div>
 
         {/* Adherence Streak Badge */}
-        <div className="flex items-center gap-3 bg-slate-900/80 px-3.5 py-1.5 rounded-2xl border border-slate-800">
-          <div className="flex items-center gap-1.5 text-amber-400 font-bold text-sm">
-            <Flame className="w-4 h-4 fill-amber-400" />
+        <div className="flex items-center gap-2.5 sm:gap-3 bg-slate-900/80 px-3 py-1.5 rounded-2xl border border-slate-800 shrink-0">
+          <div className="flex items-center gap-1 text-amber-400 font-bold text-xs sm:text-sm">
+            <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-400" />
             <span>{patient.streakDays} Day Streak</span>
           </div>
-          <div className="h-4 w-px bg-slate-800" />
-          <div className="text-xs font-semibold text-emerald-400">
+          <div className="h-3.5 w-px bg-slate-800" />
+          <div className="text-[11px] sm:text-xs font-semibold text-emerald-400">
             {patient.adherenceRate}% Adherence
           </div>
         </div>

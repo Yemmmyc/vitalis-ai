@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Camera, CheckCircle, AlertOctagon, AlertTriangle, ShieldCheck, Sparkles, RefreshCw } from 'lucide-react';
+import { VitalisServiceFactory } from '../services/VitalisServiceFactory.ts';
 
 interface PillScannerModalProps {
   isOpen: boolean;
@@ -24,17 +25,10 @@ export const PillScannerModal: React.FC<PillScannerModalProps> = ({ isOpen, onCl
   const handleScan = async () => {
     setIsScanning(true);
     try {
-      const res = await fetch('/tools/verify_pill_bottle_vision', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patientId: 'pt-88219',
-          samplePillPreset: selectedPreset
-        })
-      });
-      const data = await res.json();
-      setScanData(data.result);
-      onScanResult(data.result);
+      const service = VitalisServiceFactory.getService();
+      const result = await service.verifyPillBottle(selectedPreset);
+      setScanData(result);
+      onScanResult(result);
     } catch (err) {
       console.error(err);
     } finally {
@@ -43,8 +37,8 @@ export const PillScannerModal: React.FC<PillScannerModalProps> = ({ isOpen, onCl
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 relative shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-4 sm:p-6 relative shadow-2xl overflow-y-auto max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-800">
           <div className="flex items-center gap-3">

@@ -7,6 +7,7 @@ import { PillScannerModal } from './components/PillScannerModal.tsx';
 import { CaregiverPortalModal } from './components/CaregiverPortalModal.tsx';
 import { DeveloperInspector } from './components/DeveloperInspector.tsx';
 import { PatientProfile, CaregiverAlert, MCPLogEntry } from './types.js';
+import { VitalisServiceFactory } from './services/VitalisServiceFactory.ts';
 
 export const App: React.FC = () => {
   const [patient, setPatient] = useState<PatientProfile | null>(null);
@@ -23,15 +24,16 @@ export const App: React.FC = () => {
   // Fetch initial patient state and alerts
   const fetchData = async () => {
     try {
-      const [ptRes, alertRes, healthRes] = await Promise.all([
-        fetch('/api/patient'),
-        fetch('/api/alerts'),
-        fetch('/health')
+      const service = VitalisServiceFactory.getService();
+      const [ptData, alertData, healthData] = await Promise.all([
+        service.getPatient(),
+        service.getAlerts(),
+        service.getHealth()
       ]);
 
-      if (ptRes.ok) setPatient(await ptRes.json());
-      if (alertRes.ok) setAlerts(await alertRes.json());
-      if (healthRes.ok) setServerStatus(await healthRes.json());
+      setPatient(ptData);
+      setAlerts(alertData);
+      setServerStatus(healthData);
     } catch (err) {
       console.error("Error fetching state:", err);
     }
@@ -40,67 +42,31 @@ export const App: React.FC = () => {
   useEffect(() => {
     fetchData();
 
-    // Connect to Server-Sent Events (SSE) Streamable HTTP
-    const eventSource = new EventSource('/sse');
+    // Subscribe to telemetry stream (SSE on Web, In-Memory TelemetryBus on Mobile)
+    const service = VitalisServiceFactory.getService();
+    const unsubscribe = service.subscribeTelemetry((logEntry) => {
+      setLogs((prev) => [logEntry, ...prev.slice(0, 49)]);
 
-    eventSource.addEventListener('connected', (e: any) => {
-      const data = JSON.parse(e.data);
-      addLog('event', 'SSE Connected', data);
-    });
-
-    eventSource.addEventListener('mcp:request', (e: any) => {
-      const data = JSON.parse(e.data);
-      addLog('request', data.method, data);
-    });
-
-    eventSource.addEventListener('mcp:response', (e: any) => {
-      const data = JSON.parse(e.data);
-      addLog('response', data.method, data, data.latencyMs);
-    });
-
-    eventSource.addEventListener('tool:executed', (e: any) => {
-      const data = JSON.parse(e.data);
-      addLog('event', `Tool Executed: ${data.toolName}`, data);
-      fetchData(); // Sync UI
-    });
-
-    eventSource.addEventListener('agent:turn', (e: any) => {
-      fetchData(); // Sync UI
+      if (
+        logEntry.method?.includes('Tool Executed') ||
+        logEntry.method === 'agent:turn' ||
+        logEntry.type === 'response'
+      ) {
+        fetchData(); // Sync UI
+      }
     });
 
     return () => {
-      eventSource.close();
+      unsubscribe();
     };
   }, []);
-
-  const addLog = (type: 'request' | 'response' | 'event', title?: string, payload?: any, latencyMs?: number) => {
-    const newEntry: MCPLogEntry = {
-      id: `log-${Date.now()}-${Math.random()}`,
-      timestamp: new Date().toISOString(),
-      type,
-      method: title,
-      payload,
-      latencyMs
-    };
-    setLogs((prev) => [newEntry, ...prev.slice(0, 49)]);
-  };
 
   // User takes dose
   const handleTakeDose = async (medId: string) => {
     try {
-      const res = await fetch('/tools/log_medication_dose', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patientId: 'pt-88219',
-          medicationId: medId,
-          status: 'taken',
-          notes: 'Taken via Echo Show interface'
-        })
-      });
-      if (res.ok) {
-        await fetchData();
-      }
+      const service = VitalisServiceFactory.getService();
+      await service.logDose(medId);
+      await fetchData();
     } catch (err) {
       console.error(err);
     }
@@ -122,16 +88,12 @@ export const App: React.FC = () => {
   const handleSendMessage = async (msg: string) => {
     setIsThinking(true);
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg, patientId: 'pt-88219' })
-      });
-      const data = await res.json();
+      const service = VitalisServiceFactory.getService();
+      const res = await service.sendMessage(msg);
       await fetchData();
       return {
-        spokenResponse: data.spokenResponse,
-        toolExecutions: data.toolExecutions
+        spokenResponse: res.spokenResponse,
+        toolExecutions: res.toolExecutions || []
       };
     } catch (err) {
       console.error(err);
@@ -157,22 +119,22 @@ export const App: React.FC = () => {
       />
 
       {/* Main Smart Display Layout */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3.5 sm:p-6 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 max-w-full overflow-x-hidden pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         {/* Left Column: Voice Assistant & Active Dialogue */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
+        <div className="lg:col-span-7 flex flex-col gap-4 sm:gap-6">
           <VoiceAssistant onSendMessage={handleSendMessage} isThinking={isThinking} />
           <MedicationWidget patient={patient} onTakeDose={handleTakeDose} />
         </div>
 
         {/* Right Column: Vitals Telemetry & Quick Action Hub */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
+        <div className="lg:col-span-5 flex flex-col gap-4 sm:gap-6">
           <VitalsWidget patient={patient} onAddWater={handleAddWater} />
 
           {/* Quick Hardware / Feature Banner */}
-          <div className="glass-card rounded-3xl p-6 border border-sky-500/20 relative overflow-hidden">
+          <div className="glass-card rounded-3xl p-4 sm:p-6 border border-sky-500/20 relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-sky-400 tracking-wider uppercase">Alexa+ Innovation Highlights</span>
-              <span className="text-[11px] text-slate-400">Streamable HTTP MCP</span>
+              <span className="text-[11px] sm:text-xs font-bold text-sky-400 tracking-wider uppercase">Alexa+ Innovation Highlights</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-400">Streamable HTTP MCP</span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed mb-4">
               Vitalis AI demonstrates how Alexa+ can support proactive care coordination using open Model Context Protocol tools and Amazon Bedrock conversational responses.
@@ -180,19 +142,19 @@ export const App: React.FC = () => {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setIsScannerOpen(true)}
-                className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-sky-500/20 text-sky-300 border border-sky-500/30 hover:bg-sky-500/30 transition-all"
+                className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-sky-500/20 text-sky-300 border border-sky-500/30 hover:bg-sky-500/30 transition-all active:scale-95"
               >
                 Launch Pill Camera
               </button>
               <button
                 onClick={() => setIsCaregiverOpen(true)}
-                className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-all"
+                className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-all active:scale-95"
               >
                 Caregiver Alerts ({alerts.length})
               </button>
               <button
                 onClick={() => setIsInspectorOpen(true)}
-                className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-all"
+                className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-all active:scale-95"
               >
                 Inspect Live JSON-RPC
               </button>

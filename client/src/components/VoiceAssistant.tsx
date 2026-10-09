@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Send, Volume2, Sparkles, AlertCircle, Bot } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 interface VoiceAssistantProps {
   onSendMessage: (msg: string) => Promise<{ spokenResponse: string; toolExecutions: any[] }>;
@@ -15,9 +17,24 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
   const [activeTools, setActiveTools] = useState<any[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
 
   useEffect(() => {
-    // Setup Web Speech API if supported
+    // Setup Web Speech API SpeechSynthesis voices preloading for Web Browser mode
+    if (!Capacitor.isNativePlatform() && 'speechSynthesis' in window) {
+      const loadVoices = () => {
+        const available = window.speechSynthesis.getVoices();
+        if (available && available.length > 0) {
+          voicesRef.current = available;
+        }
+      };
+      loadVoices();
+      if (typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      }
+    }
+
+    // Setup Web Speech API SpeechRecognition if supported
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
@@ -31,7 +48,8 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
         handleSend(transcript);
       };
 
-      recognition.onerror = () => {
+      recognition.onerror = (err: any) => {
+        console.warn('[Vitalis AI Voice Recognition Error]:', err);
         setIsListening(false);
       };
 
@@ -43,16 +61,105 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
     }
   }, []);
 
-  const speakText = (text: string) => {
-    if ('speechSynthesis' in window) {
+  const getBestEnglishVoice = (voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null => {
+    if (!voices || voices.length === 0) return null;
+    const enUs = voices.find(v => v.lang === 'en-US' || v.lang === 'en_US');
+    if (enUs) return enUs;
+    const en = voices.find(v => v.lang.toLowerCase().startsWith('en'));
+    if (en) return en;
+    return voices[0];
+  };
+
+  const speakText = async (text: string) => {
+    if (!text || !text.trim()) return;
+
+    // Native Android / Mobile TTS Flow via Capacitor Native Plugin
+    if (Capacitor.isNativePlatform()) {
+      try {
+        setIsSpeaking(true);
+        await TextToSpeech.stop().catch(() => {});
+        await TextToSpeech.speak({
+          text,
+          lang: 'en-US',
+          rate: 0.95,
+          pitch: 1.05,
+          volume: 1.0,
+          category: 'ambient',
+        });
+        setIsSpeaking(false);
+      } catch (err) {
+        console.error('[Vitalis AI Native TTS Error]: Failed to synthesize speech on Android device:', err);
+        setIsSpeaking(false);
+      }
+      return;
+    }
+
+    // Web Browser Fallback Flow (Desktop/Web Mode)
+    if (!('speechSynthesis' in window)) {
+      console.warn('[Vitalis AI Web TTS Warning]: SpeechSynthesis is not supported in this browser context.');
+      return;
+    }
+
+    try {
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.95; // Gentle elder-friendly pace
-      utterance.pitch = 1.05;
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      window.speechSynthesis.speak(utterance);
+
+      const doSpeak = () => {
+        let voices = voicesRef.current;
+        if (!voices || voices.length === 0) {
+          voices = window.speechSynthesis.getVoices();
+          voicesRef.current = voices;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.95; // Gentle elder-friendly pace
+        utterance.pitch = 1.05;
+
+        const chosenVoice = getBestEnglishVoice(voices);
+        if (chosenVoice) {
+          utterance.voice = chosenVoice;
+        }
+
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = (e) => {
+          console.error('[Vitalis AI Web TTS Utterance Error]:', e);
+          setIsSpeaking(false);
+        };
+
+        // Short delay for Android WebView engine readiness
+        setTimeout(() => {
+          try {
+            window.speechSynthesis.speak(utterance);
+          } catch (err) {
+            console.error('[Vitalis AI Web TTS Exception]:', err);
+            setIsSpeaking(false);
+          }
+        }, 50);
+      };
+
+      if (voicesRef.current.length === 0 && window.speechSynthesis.getVoices().length === 0) {
+        let resolved = false;
+        const onVoicesChanged = () => {
+          if (resolved) return;
+          resolved = true;
+          voicesRef.current = window.speechSynthesis.getVoices();
+          window.speechSynthesis.onvoiceschanged = null;
+          doSpeak();
+        };
+        window.speechSynthesis.onvoiceschanged = onVoicesChanged;
+        setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            doSpeak();
+          }
+        }, 250);
+      } else {
+        doSpeak();
+      }
+    } catch (err) {
+      console.error('[Vitalis AI Web TTS Exception]: Error in speakText:', err);
+      setIsSpeaking(false);
     }
   };
 
@@ -95,18 +202,18 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
   ];
 
   return (
-    <div className="glass-card rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+    <div className="glass-card rounded-3xl p-4 sm:p-6 shadow-xl relative overflow-hidden flex flex-col justify-between max-w-full">
       {/* Visual Glowing Alexa+ Ring */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className={`w-12 h-12 rounded-full alexa-gradient flex items-center justify-center transition-all ${
+      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 pb-3.5 sm:pb-4 border-b border-slate-800">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="relative shrink-0">
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full alexa-gradient flex items-center justify-center transition-all ${
               isSpeaking || isListening ? 'ring-4 ring-sky-400 animate-pulse-glow' : 'shadow-lg shadow-sky-500/30'
             }`}>
               {isListening ? (
-                <Mic className="w-6 h-6 text-white animate-bounce" />
+                <Mic className="w-5 h-5 sm:w-6 sm:h-6 text-white animate-bounce" />
               ) : (
-                <Bot className="w-6 h-6 text-white" />
+                <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               )}
             </div>
             {(isSpeaking || isListening) && (
@@ -117,20 +224,20 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
             )}
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-white">Alexa+ Voice Interface</h2>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-white">Alexa+ Voice Interface</h2>
               {isSpeaking && (
-                <span className="flex items-center gap-1 text-[11px] font-semibold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
                   <Volume2 className="w-3 h-3 animate-pulse" /> Speaking
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400">Model Context Protocol • Streamable HTTP • Amazon Bedrock</p>
+            <p className="text-[11px] sm:text-xs text-slate-400">MCP Telemetry • Amazon Bedrock</p>
           </div>
         </div>
 
         {/* Audio Waveform Animation */}
-        <div className="flex items-center gap-1.5 h-8 px-3 py-1 rounded-xl bg-slate-900/80 border border-slate-800">
+        <div className="hidden xs:flex items-center gap-1.5 h-8 px-2.5 py-1 rounded-xl bg-slate-900/80 border border-slate-800 shrink-0">
           <div className={`w-1 bg-sky-400 rounded-full transition-all ${isSpeaking || isListening ? 'animate-wave-1' : 'h-2'}`} />
           <div className={`w-1 bg-sky-400 rounded-full transition-all ${isSpeaking || isListening ? 'animate-wave-2' : 'h-3'}`} />
           <div className={`w-1 bg-sky-400 rounded-full transition-all ${isSpeaking || isListening ? 'animate-wave-3' : 'h-4'}`} />
@@ -150,9 +257,19 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
           </div>
         ) : (
           <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 relative">
-            <p className="text-base text-slate-100 font-medium leading-relaxed">
-              "{spokenResponse}"
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-base text-slate-100 font-medium leading-relaxed flex-1">
+                "{spokenResponse}"
+              </p>
+              <button
+                type="button"
+                onClick={() => speakText(spokenResponse)}
+                className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-sky-400 border border-slate-700/60 transition-all shrink-0 active:scale-95"
+                title="Replay Voice Response"
+              >
+                <Volume2 className="w-4 h-4" />
+              </button>
+            </div>
 
             {/* Active tools invoked badge */}
             {activeTools.length > 0 && (
