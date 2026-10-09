@@ -27,6 +27,19 @@ It provides a proactive interface for routine medication tracking, visual pill-b
 
 ---
 
+## 📦 Submission Deliverables & Product Contexts
+
+This repository supports **two distinct submission deliverables**:
+
+| Submission Context | Submission Name | Deliverable Format | Primary Brand / Artifact | Documentation Link |
+| :--- | :--- | :--- | :--- | :--- |
+| **Qubator QAF 2.0 Submission** | **Vitalis AI** | Android Application APK | **Vitalis Care** (`Vitalis-Care-v1.0.1.apk`, `com.vitalis.app`) | [`docs/qaf-2.0/SUBMISSION_DETAILS.md`](file:///C:/Users/yemmm/Desktop/Buld_Ship_Shape/docs/qaf-2.0/SUBMISSION_DETAILS.md) |
+| **Original Devpost Hackathon** | **Vitalis AI** | Web App Simulator & MCP Server | **Vitalis AI** Echo Show Display (`http://localhost:3000`, `/mcp`) | [`docs/devpost/SUBMISSION_DETAILS.md`](file:///C:/Users/yemmm/Desktop/Buld_Ship_Shape/docs/devpost/SUBMISSION_DETAILS.md) |
+
+> **Naming & Deliverable Distinction**: **Vitalis AI** is the overall project identity and Devpost submission name. **Vitalis Care** is the user-facing Android launcher brand on the physical mobile device (`com.vitalis.app`). The web smart-display simulator and the native Android APK are complementary deliverables for their respective evaluation environments.
+
+---
+
 ## 🎯 Main Features & Intended Users
 
 ### Intended Users
@@ -208,7 +221,36 @@ cd android
 cd ..
 
 # 3. Install on connected physical Android device via ADB
-adb install -r release-artifacts/Vitalis-Care-v1.0.1.apk
+```
+
+---
+
+## 📁 Repository Documentation & Project Structure
+
+```text
+Buld_Ship_Shape/
+├── client/                        # Echo Show Smart Display React/Vite/Tailwind frontend
+├── server/                        # Vitalis MCP Server (TypeScript, Express, Spec 2025-11-25)
+├── android/                       # Capacitor 8 Android native application project (com.vitalis.app)
+├── release-artifacts/             # Release binaries (Vitalis-Care-v1.0.1.apk)
+├── tests/                         # Automated unit & MCP test suite (13 passing tests)
+├── docs/                          # Comprehensive documentation catalog
+│   ├── README.md                  # Master documentation index & deliverable guide
+│   ├── qaf-2.0/                   # Qubator QAF 2.0 Product Submission documentation
+│   │   └── SUBMISSION_DETAILS.md  # QAF 2.0 APK submission specs & physical device evidence
+│   ├── devpost/                   # Original Devpost Hackathon project documentation
+│   │   ├── SUBMISSION_DETAILS.md  # Devpost hackathon project fields (Alexa+, AWS Builder)
+│   │   ├── VIDEO_SCRIPT_3MIN.md   # 3-minute video script & storyboard
+│   │   ├── PRODUCT_FEEDBACK.md    # Amazon Developer & Alexa+ tool feedback
+│   │   └── FRICTION_LOG.md        # Developer friction log (10% Devpost judging bonus)
+│   ├── shared/                    # Shared technical specifications
+│   │   └── TECHNICAL_ARCHITECTURE.md # Architecture, 6 MCP tools, Bedrock & fallback
+│   └── development/               # Internal developer reference & historical logs
+│       └── HACKATHON_MASTER_GUIDE.md # Master guide & test archive
+├── capacitor.config.json          # Capacitor configuration (appName: Vitalis Care)
+├── package.json                   # Root package configuration & build scripts
+├── LICENSE                        # MIT Open Source License
+└── README.md                      # Primary open-source repository documentation
 ```
 
 ---
