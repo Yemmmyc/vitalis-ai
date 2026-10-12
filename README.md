@@ -201,27 +201,33 @@ npm run dev
 
 ---
 
-## 📱 Android APK Build & Installation
+## 📱 Android APK & AAB Build & Release Automation
 
-To sync and build the user-facing Android app (**Vitalis Care**) locally:
+To build the user-facing Android app (**Vitalis Care**) locally:
 
 ```bash
-# 1. Sync web assets with Capacitor Android wrapper
-npx cap sync android
+# 1. Build client web application and synchronize with Capacitor
+npm run cap:build
 
-# 2. Compile Debug APK using Gradle
-# On Windows (PowerShell / Command Prompt):
-cd android
-.\gradlew.bat assembleDebug
-cd ..
+# 2. Compile Debug APK locally (for fast emulator/device testing)
+# Windows:
+.\android\gradlew.bat -p android assembleDebug
+# Linux / macOS:
+./android/gradlew -p android assembleDebug
 
-# On Linux / macOS / WSL:
-cd android
-./gradlew assembleDebug
-cd ..
-
-# 3. Install on connected physical Android device via ADB
+# 3. Compile Release APK & Android App Bundle (AAB) locally (requires JDK 21)
+# Windows:
+$env:JAVA_HOME = "C:\Users\yemmm\AppData\Local\Java\jdk-21"
+.\android\gradlew.bat -p android assembleRelease bundleRelease
+# Linux / macOS:
+./android/gradlew -p android assembleRelease bundleRelease
 ```
+
+### 🚀 Continuous Build & Release Automation (GitHub Actions)
+Automated building, signing, and release publishing is handled through dedicated GitHub Actions workflows:
+- **Continuous Build & Verification** ([`.github/workflows/android-build.yml`](file:///c:/Users/yemmm/Desktop/Buld_Ship_Shape/.github/workflows/android-build.yml)): Automatically validates tests, builds web assets, synchronizes Capacitor, and compiles release APK & AAB artifacts on every push and PR to `main`.
+- **Version Release Publishing** ([`.github/workflows/android-release.yml`](file:///c:/Users/yemmm/Desktop/Buld_Ship_Shape/.github/workflows/android-release.yml)): Safely signs release APK and AAB with production keystore secrets and publishes official GitHub Releases when a version tag (`v*`) is pushed or manually triggered.
+- **Detailed Setup & Operator Guide**: See [`docs/ANDROID_RELEASE_AUTOMATION.md`](file:///c:/Users/yemmm/Desktop/Buld_Ship_Shape/docs/ANDROID_RELEASE_AUTOMATION.md).
 
 ---
 
@@ -229,13 +235,17 @@ cd ..
 
 ```text
 Buld_Ship_Shape/
+├── .github/workflows/             # GitHub Actions CI/CD workflows
+│   ├── android-build.yml          # Continuous Android build validation & artifact upload (push to main)
+│   └── android-release.yml        # Official signed release publisher (version tags & manual dispatch)
 ├── client/                        # Echo Show Smart Display React/Vite/Tailwind frontend
 ├── server/                        # Vitalis MCP Server (TypeScript, Express, Spec 2025-11-25)
 ├── android/                       # Capacitor 8 Android native application project (com.vitalis.app)
-├── release-artifacts/             # Release binaries (Vitalis-Care-v1.0.1.apk)
+├── release-artifacts/             # Published release binaries (Vitalis-Care-v1.0.1.apk)
 ├── tests/                         # Automated unit & MCP test suite (13 passing tests)
 ├── docs/                          # Comprehensive documentation catalog
 │   ├── README.md                  # Master documentation index & deliverable guide
+│   ├── ANDROID_RELEASE_AUTOMATION.md # Complete Android CI/CD release & signing guide
 │   ├── qaf-2.0/                   # Qubator QAF 2.0 Product Submission documentation
 │   │   └── SUBMISSION_DETAILS.md  # QAF 2.0 APK submission specs & physical device evidence
 │   ├── devpost/                   # Original Devpost Hackathon project documentation

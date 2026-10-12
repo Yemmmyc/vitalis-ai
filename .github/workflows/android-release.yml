@@ -1,0 +1,249 @@
+name: Android Release Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release version tag (e.g. v1.0.2)'
+        required: true
+        type: string
+      release_title:
+        description: 'Release title (defaults to "Vitalis Care <tag>")'
+        required: false
+        type: string
+      release_notes:
+        description: 'Custom release notes / changelog'
+        required: false
+        type: string
+      version_code:
+        description: 'Android version code (integer >= 2, leave blank for auto)'
+        required: false
+        type: string
+      draft:
+        description: 'Create as draft release'
+        required: false
+        type: boolean
+        default: false
+      prerelease:
+        description: 'Create as prerelease'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: android-release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    name: Validate Release Parameters & Secrets
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.resolve_tag.outputs.release_tag }}
+      version_name: ${{ steps.resolve_tag.outputs.version_name }}
+      version_code: ${{ steps.resolve_tag.outputs.version_code }}
+    steps:
+      - name: Resolve Release Tag & Version Code
+        id: resolve_tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RAW_TAG="${{ github.event.inputs.tag_name || github.ref_name }}"
+          echo "Processing release tag: $RAW_TAG"
+
+          # Guard 1: Must follow semantic version format (e.g., v1.0.2)
+          if [[ ! "$RAW_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "::error:: Tag '$RAW_TAG' does not match semantic version pattern 'vMAJOR.MINOR.PATCH' (e.g. v1.0.2)"
+            exit 1
+          fi
+
+          # Guard 2: Never duplicate or overwrite published releases (v1.0.0, v1.0.1)
+          if [ "$RAW_TAG" = "v1.0.0" ] || [ "$RAW_TAG" = "v1.0.1" ]; then
+            echo "::error:: Release '$RAW_TAG' is already published. Duplicating or overwriting existing releases is prohibited!"
+            exit 1
+          fi
+
+          # Guard 3: Check if release tag already exists on GitHub
+          if gh release view "$RAW_TAG" --repo "${{ github.repository }}" > /dev/null 2>&1; then
+            echo "::error:: A GitHub Release for tag '$RAW_TAG' already exists on remote! Duplicate releases are prohibited."
+            exit 1
+          fi
+
+          VERSION_NAME="${RAW_TAG#v}"
+
+          # Resolve versionCode (must be >= 2 since published v1.0.1 used versionCode 1)
+          INPUT_CODE="${{ github.event.inputs.version_code }}"
+          if [ -n "$INPUT_CODE" ]; then
+            VERSION_CODE="$INPUT_CODE"
+          else
+            RUN_NUM=${{ github.run_number }}
+            VERSION_CODE=$((RUN_NUM + 1))
+          fi
+
+          echo "release_tag=$RAW_TAG" >> "$GITHUB_OUTPUT"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "Resolved Tag: $RAW_TAG, Version Name: $VERSION_NAME, Version Code: $VERSION_CODE"
+
+      - name: Validate Signing Secrets Configuration
+        run: |
+          KEYSTORE="${{ secrets.ANDROID_KEYSTORE_BASE64 || secrets.SIGNING_KEY }}"
+          STORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD || secrets.KEYSTORE_PASSWORD }}"
+          KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS || secrets.KEY_ALIAS }}"
+          KEY_PASS="${{ secrets.ANDROID_KEY_PASSWORD || secrets.KEY_PASSWORD }}"
+
+          if [ -z "$KEYSTORE" ] || [ -z "$STORE_PASS" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASS" ]; then
+            echo "::error:: Official GitHub Releases strictly require signed artifacts!"
+            echo "::error:: Missing required repository secrets. Configure the following in Settings -> Secrets and variables -> Actions:"
+            echo "  - ANDROID_KEYSTORE_BASE64: Base64-encoded release .keystore/.jks file"
+            echo "  - ANDROID_KEYSTORE_PASSWORD: Password for the release keystore"
+            echo "  - ANDROID_KEY_ALIAS: Alias name of the signing key"
+            echo "  - ANDROID_KEY_PASSWORD: Password for the signing key"
+            exit 1
+          fi
+          echo "All required signing secrets are present."
+
+  build-and-publish:
+    name: Build, Sign & Publish Release
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Set up Java JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install client dependencies
+        run: npm ci --prefix client
+
+      - name: Compile server TypeScript & Run unit tests
+        run: |
+          npm run server:build
+          npm test
+
+      - name: Build web application client
+        run: npm run client:build
+
+      - name: Synchronize web assets into Capacitor Android project
+        run: npx cap sync android
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
+      - name: Build Android Release APK and App Bundle (AAB)
+        env:
+          APP_VERSION_NAME: ${{ needs.validate.outputs.version_name }}
+          APP_VERSION_CODE: ${{ needs.validate.outputs.version_code }}
+        run: |
+          echo "Building Android release version ${{ needs.validate.outputs.version_name }} (versionCode ${{ needs.validate.outputs.version_code }})"
+          ./android/gradlew -p android assembleRelease bundleRelease --stacktrace
+
+      - name: Sign Release APK
+        uses: r0adkll/sign-android-release@v1
+        id: sign_apk
+        with:
+          releaseDirectory: android/app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || secrets.SIGNING_KEY }}
+          alias: ${{ secrets.ANDROID_KEY_ALIAS || secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: '35.0.0'
+
+      - name: Sign Release AAB
+        uses: r0adkll/sign-android-release@v1
+        id: sign_aab
+        with:
+          releaseDirectory: android/app/build/outputs/bundle/release
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || secrets.SIGNING_KEY }}
+          alias: ${{ secrets.ANDROID_KEY_ALIAS || secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: '35.0.0'
+
+      - name: Verify Signed APK & AAB Certificates & Integrity
+        run: |
+          SIGNED_APK=$(find android/app/build/outputs/apk/release -name "*-signed.apk" | head -n 1)
+          SIGNED_AAB=$(find android/app/build/outputs/bundle/release -name "*-signed.aab" | head -n 1)
+
+          if [ -z "$SIGNED_APK" ]; then
+            echo "::error:: Signed APK was not found after signing step!"
+            exit 1
+          fi
+          if [ -z "$SIGNED_AAB" ]; then
+            echo "::error:: Signed AAB was not found after signing step!"
+            exit 1
+          fi
+
+          echo "=== 1. Verifying APK Signature with apksigner ==="
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs "$SIGNED_APK"
+
+          echo "=== 2. Verifying AAB Signature with jarsigner ==="
+          jarsigner -verify -verbose -certs "$SIGNED_AAB" | head -n 30
+
+      - name: Prepare Named Release Assets
+        run: |
+          mkdir -p release-dist
+          TAG="${{ needs.validate.outputs.release_tag }}"
+          
+          SIGNED_APK=$(find android/app/build/outputs/apk/release -name "*-signed.apk" | head -n 1)
+          SIGNED_AAB=$(find android/app/build/outputs/bundle/release -name "*-signed.aab" | head -n 1)
+          
+          if [ -z "$SIGNED_APK" ] || [ -z "$SIGNED_AAB" ]; then
+            echo "::error:: Missing signed APK or AAB artifact!"
+            exit 1
+          fi
+
+          cp "$SIGNED_APK" "release-dist/Vitalis-Care-${TAG}.apk"
+          cp "$SIGNED_AAB" "release-dist/Vitalis-Care-${TAG}.aab"
+
+          echo "Prepared release assets:"
+          ls -lh release-dist/
+
+      - name: Upload Workflow Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitalis-care-${{ needs.validate.outputs.release_tag }}-signed
+          path: release-dist/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.validate.outputs.release_tag }}
+          name: ${{ github.event.inputs.release_title || format('Vitalis Care {0}', needs.validate.outputs.release_tag) }}
+          body: ${{ github.event.inputs.release_notes || '' }}
+          generate_release_notes: true
+          draft: ${{ github.event.inputs.draft || false }}
+          prerelease: ${{ github.event.inputs.prerelease || false }}
+          files: |
+            release-dist/Vitalis-Care-${{ needs.validate.outputs.release_tag }}.apk
+            release-dist/Vitalis-Care-${{ needs.validate.outputs.release_tag }}.aab

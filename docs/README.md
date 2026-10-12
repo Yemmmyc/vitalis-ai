@@ -30,6 +30,7 @@ To maintain total clarity, the documentation is organized around **two distinct 
 ```text
 docs/
 ├── README.md                      # Master Documentation Index & Overview (This file)
+├── ANDROID_RELEASE_AUTOMATION.md  # Android Release Automation & Signing Migration Guide
 ├── qaf-2.0/                       # Qubator QAF 2.0 Product Submission Documents
 │   └── SUBMISSION_DETAILS.md      # QAF 2.0 APK submission specifications & device test evidence
 ├── devpost/                       # Original Devpost Hackathon Documents
@@ -49,6 +50,7 @@ docs/
 
 | Category | File Path | Document Title | Primary Purpose & Context |
 | :--- | :--- | :--- | :--- |
+| **Release CI/CD** | [`docs/ANDROID_RELEASE_AUTOMATION.md`](file:///C:/Users/yemmm/Desktop/Buld_Ship_Shape/docs/ANDROID_RELEASE_AUTOMATION.md) | Android Release Automation Guide | GitHub Actions CI/CD workflows, JDK 21 build requirements, keystore secrets, release tagging, and signing migration. |
 | **Qubator QAF 2.0** | [`docs/qaf-2.0/SUBMISSION_DETAILS.md`](file:///C:/Users/yemmm/Desktop/Buld_Ship_Shape/docs/qaf-2.0/SUBMISSION_DETAILS.md) | QAF 2.0 Product Submission Details | Android APK build specifications, release `v1.0.1` details, SHA-256 checksum, file size, and physical device test evidence. |
 | **Devpost Project** | [`docs/devpost/SUBMISSION_DETAILS.md`](file:///C:/Users/yemmm/Desktop/Buld_Ship_Shape/docs/devpost/SUBMISSION_DETAILS.md) | Devpost Submission Overview | Original hackathon project fields, inspiration, track information, and full-stack web simulator overview. |
 | **Devpost Project** | [`docs/devpost/VIDEO_SCRIPT_3MIN.md`](file:///C:/Users/yemmm/Desktop/Buld_Ship_Shape/docs/devpost/VIDEO_SCRIPT_3MIN.md) | 3-Minute Video Script & Storyboard | Shot-by-shot video narration, timing, and demonstration storyboard for the hackathon video demo. |

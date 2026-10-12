@@ -1,6 +1,6 @@
 {
   "name": "vitalis-ai",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Vitalis AI - Autonomous Multimodal Eldercare & Health Advocate on Alexa+ powered by MCP & Amazon Bedrock",
   "main": "server/dist/index.js",
   "scripts": {
@@ -12,7 +12,9 @@
     "client:start": "npm run start --prefix client",
     "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
     "build": "npm run server:build && npm run client:build",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "cap:sync": "cap sync android",
+    "cap:build": "npm run client:build && cap sync android"
   },
   "keywords": [
     "alexa-plus",

@@ -1,0 +1,148 @@
+name: Android Build & Validate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & Validate Android Artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Set up Java JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install client dependencies
+        run: npm ci --prefix client
+
+      - name: Compile server TypeScript & Run unit tests
+        run: |
+          npm run server:build
+          npm test
+
+      - name: Build web application client
+        run: npm run client:build
+
+      - name: Synchronize web assets into Capacitor Android project
+        run: npx cap sync android
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
+      - name: Build Android Release APK and App Bundle (AAB)
+        run: |
+          ./android/gradlew -p android assembleRelease bundleRelease --stacktrace
+
+      - name: Evaluate Android signing secrets
+        id: check_signing_secrets
+        run: |
+          KEYSTORE="${{ secrets.ANDROID_KEYSTORE_BASE64 || secrets.SIGNING_KEY }}"
+          STORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD || secrets.KEYSTORE_PASSWORD }}"
+          KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS || secrets.KEY_ALIAS }}"
+          KEY_PASS="${{ secrets.ANDROID_KEY_PASSWORD || secrets.KEY_PASSWORD }}"
+
+          if [ -n "$KEYSTORE" ] && [ -n "$STORE_PASS" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASS" ]; then
+            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+            echo "Android release signing secrets are configured."
+          else
+            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+            echo "::warning:: Android release signing secrets are not configured in this repository."
+            echo "::notice:: To enable release artifact signing, configure repository secrets: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD."
+          fi
+
+      - name: Sign Release APK
+        if: steps.check_signing_secrets.outputs.has_secrets == 'true'
+        uses: r0adkll/sign-android-release@v1
+        id: sign_apk
+        with:
+          releaseDirectory: android/app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || secrets.SIGNING_KEY }}
+          alias: ${{ secrets.ANDROID_KEY_ALIAS || secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: '35.0.0'
+
+      - name: Sign Release AAB
+        if: steps.check_signing_secrets.outputs.has_secrets == 'true'
+        uses: r0adkll/sign-android-release@v1
+        id: sign_aab
+        with:
+          releaseDirectory: android/app/build/outputs/bundle/release
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || secrets.SIGNING_KEY }}
+          alias: ${{ secrets.ANDROID_KEY_ALIAS || secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: '35.0.0'
+
+      - name: Verify Signed APK & AAB Certificates & Integrity
+        if: steps.check_signing_secrets.outputs.has_secrets == 'true'
+        run: |
+          SIGNED_APK=$(find android/app/build/outputs/apk/release -name "*-signed.apk" | head -n 1)
+          SIGNED_AAB=$(find android/app/build/outputs/bundle/release -name "*-signed.aab" | head -n 1)
+
+          if [ -z "$SIGNED_APK" ]; then
+            echo "::error:: Signed APK was not found after signing step!"
+            exit 1
+          fi
+          if [ -z "$SIGNED_AAB" ]; then
+            echo "::error:: Signed AAB was not found after signing step!"
+            exit 1
+          fi
+
+          echo "=== 1. Verifying APK Signature with apksigner ==="
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs "$SIGNED_APK"
+
+          echo "=== 2. Verifying AAB Signature with jarsigner ==="
+          jarsigner -verify -verbose -certs "$SIGNED_AAB" | head -n 30
+
+      - name: Stage build artifacts
+        run: |
+          mkdir -p build-artifacts
+          if [ "${{ steps.check_signing_secrets.outputs.has_secrets }}" = "true" ]; then
+            SIGNED_APK=$(find android/app/build/outputs/apk/release -name "*-signed.apk" | head -n 1)
+            SIGNED_AAB=$(find android/app/build/outputs/bundle/release -name "*-signed.aab" | head -n 1)
+            cp "$SIGNED_APK" build-artifacts/Vitalis-Care-signed.apk
+            cp "$SIGNED_AAB" build-artifacts/Vitalis-Care-signed.aab
+          else
+            cp android/app/build/outputs/apk/release/app-release-unsigned.apk build-artifacts/Vitalis-Care-unsigned.apk
+            cp android/app/build/outputs/bundle/release/app-release.aab build-artifacts/Vitalis-Care-unsigned.aab
+          fi
+          echo "Staged artifacts:"
+          ls -lh build-artifacts/
+
+      - name: Upload APK and AAB build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitalis-care-android-${{ github.sha }}
+          path: build-artifacts/
+          if-no-files-found: error
+          retention-days: 14
