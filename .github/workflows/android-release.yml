@@ -188,34 +188,90 @@ jobs:
 
       - name: Verify Signed APK & AAB Certificates & Integrity
         run: |
-          SIGNED_APK=$(find android/app/build/outputs/apk/release -name "*-signed.apk" | head -n 1)
-          SIGNED_AAB=$(find android/app/build/outputs/bundle/release -name "*-signed.aab" | head -n 1)
+          SIGNED_APK="${{ steps.sign_apk.outputs.signedReleaseFile }}"
+          if [ -z "$SIGNED_APK" ] || [ ! -f "$SIGNED_APK" ]; then
+            SIGNED_APK=$(find android/app/build/outputs/apk/release -name "*signed*.apk" | head -n 1)
+          fi
 
-          if [ -z "$SIGNED_APK" ]; then
+          SIGNED_AAB="${{ steps.sign_aab.outputs.signedReleaseFile }}"
+          if [ -z "$SIGNED_AAB" ] || [ ! -f "$SIGNED_AAB" ]; then
+            SIGNED_AAB=$(find android/app/build/outputs/bundle/release -name "*.aab" | head -n 1)
+          fi
+
+          if [ -z "$SIGNED_APK" ] || [ ! -f "$SIGNED_APK" ]; then
             echo "::error:: Signed APK was not found after signing step!"
             exit 1
           fi
-          if [ -z "$SIGNED_AAB" ]; then
+          if [ -z "$SIGNED_AAB" ] || [ ! -f "$SIGNED_AAB" ]; then
             echo "::error:: Signed AAB was not found after signing step!"
             exit 1
           fi
 
+          echo "Found signed APK candidate: $SIGNED_APK"
+          echo "Found signed AAB candidate: $SIGNED_AAB"
+
           echo "=== 1. Verifying APK Signature with apksigner ==="
-          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs "$SIGNED_APK"
+          APK_VERIFY_OUTPUT=$($ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs "$SIGNED_APK")
+          echo "$APK_VERIFY_OUTPUT"
+
+          if echo "$APK_VERIFY_OUTPUT" | grep -q "CN=Android Debug"; then
+            echo "::error:: APK was signed with Android Debug keystore instead of production key!"
+            exit 1
+          fi
+
+          APK_CERT_DIGEST=$(echo "$APK_VERIFY_OUTPUT" | grep "SHA-256 digest:" | head -n 1 | awk '{print $NF}' | tr '[:lower:]' '[:upper:]' | tr -d ':')
+          echo "Verified APK Certificate SHA-256: $APK_CERT_DIGEST"
 
           echo "=== 2. Verifying AAB Signature with jarsigner ==="
-          jarsigner -verify -verbose -certs "$SIGNED_AAB" | head -n 30
+          jarsigner -verify -verbose -certs "$SIGNED_AAB" > jarsigner_verify.log 2>&1
+          cat jarsigner_verify.log | head -n 35
+
+          if grep -q "jar is unsigned" jarsigner_verify.log || ! grep -q "jar verified" jarsigner_verify.log; then
+            echo "::error:: AAB verification failed: artifact is unsigned or corrupted!"
+            cat jarsigner_verify.log
+            exit 1
+          fi
+
+          if grep -q "CN=Android Debug" jarsigner_verify.log; then
+            echo "::error:: AAB was signed with Android Debug keystore instead of production key!"
+            exit 1
+          fi
+
+          echo "=== 3. Confirming AAB Signing Certificate with keytool ==="
+          AAB_CERT_OUTPUT=$(keytool -printcert -jarfile "$SIGNED_AAB")
+          echo "$AAB_CERT_OUTPUT"
+
+          AAB_CERT_DIGEST=$(echo "$AAB_CERT_OUTPUT" | grep "SHA256:" | head -n 1 | awk '{print $NF}' | tr '[:lower:]' '[:upper:]' | tr -d ':')
+          echo "Verified AAB Certificate SHA-256: $AAB_CERT_DIGEST"
+
+          if [ -n "$APK_CERT_DIGEST" ] && [ -n "$AAB_CERT_DIGEST" ]; then
+            if [ "$APK_CERT_DIGEST" != "$AAB_CERT_DIGEST" ]; then
+              echo "::error:: Signing certificate mismatch between APK ($APK_CERT_DIGEST) and AAB ($AAB_CERT_DIGEST)!"
+              exit 1
+            fi
+            echo "✓ Confirmed: Both APK and AAB are verified and signed with the identical certificate ($APK_CERT_DIGEST)."
+          else
+            echo "::error:: Could not extract certificate digests for comparison!"
+            exit 1
+          fi
 
       - name: Prepare Named Release Assets
         run: |
           mkdir -p release-dist
           TAG="${{ needs.validate.outputs.release_tag }}"
           
-          SIGNED_APK=$(find android/app/build/outputs/apk/release -name "*-signed.apk" | head -n 1)
-          SIGNED_AAB=$(find android/app/build/outputs/bundle/release -name "*-signed.aab" | head -n 1)
+          SIGNED_APK="${{ steps.sign_apk.outputs.signedReleaseFile }}"
+          if [ -z "$SIGNED_APK" ] || [ ! -f "$SIGNED_APK" ]; then
+            SIGNED_APK=$(find android/app/build/outputs/apk/release -name "*signed*.apk" | head -n 1)
+          fi
+
+          SIGNED_AAB="${{ steps.sign_aab.outputs.signedReleaseFile }}"
+          if [ -z "$SIGNED_AAB" ] || [ ! -f "$SIGNED_AAB" ]; then
+            SIGNED_AAB=$(find android/app/build/outputs/bundle/release -name "*.aab" | head -n 1)
+          fi
           
-          if [ -z "$SIGNED_APK" ] || [ -z "$SIGNED_AAB" ]; then
-            echo "::error:: Missing signed APK or AAB artifact!"
+          if [ -z "$SIGNED_APK" ] || [ ! -f "$SIGNED_APK" ] || [ -z "$SIGNED_AAB" ] || [ ! -f "$SIGNED_AAB" ]; then
+            echo "::error:: Missing verified signed APK or AAB artifact!"
             exit 1
           fi
 
