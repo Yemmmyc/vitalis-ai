@@ -4,6 +4,7 @@
   "description": "Vitalis AI - Autonomous Multimodal Eldercare & Health Advocate on Alexa+ powered by MCP & Amazon Bedrock",
   "main": "server/dist/index.js",
   "scripts": {
+    "start": "node server/dist/index.js",
     "server:dev": "tsx watch server/src/index.ts",
     "server:build": "tsc -p server/tsconfig.json",
     "server:start": "node server/dist/index.js",

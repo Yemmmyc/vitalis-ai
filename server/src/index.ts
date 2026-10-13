@@ -15,6 +15,7 @@ dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT || 4000);
+const HOST = process.env.HOST || "0.0.0.0";
 
 app.use(cors());
 app.use(express.json({ limit: "25mb" }));
@@ -526,7 +527,7 @@ app.get("*", (
    10. Start server
    ============================================================ */
 
-app.listen(PORT, () => {
+app.listen(PORT, HOST, () => {
   console.log(
     `=======================================================`
   );
