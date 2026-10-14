@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header.tsx';
 import { MedicationWidget } from './components/MedicationWidget.tsx';
 import { VitalsWidget } from './components/VitalsWidget.tsx';
@@ -21,8 +21,17 @@ export const App: React.FC = () => {
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
 
+  // Fetch concurrency guards to prevent redundant parallel requests
+  const isFetchingRef = useRef(false);
+  const pendingFetchRef = useRef(false);
+
   // Fetch initial patient state and alerts
   const fetchData = async () => {
+    if (isFetchingRef.current) {
+      pendingFetchRef.current = true;
+      return;
+    }
+    isFetchingRef.current = true;
     try {
       const service = VitalisServiceFactory.getService();
       const [ptData, alertData, healthData] = await Promise.all([
@@ -36,6 +45,12 @@ export const App: React.FC = () => {
       setServerStatus(healthData);
     } catch (err) {
       console.error("Error fetching state:", err);
+    } finally {
+      isFetchingRef.current = false;
+      if (pendingFetchRef.current) {
+        pendingFetchRef.current = false;
+        fetchData().catch((err) => console.error("Error in queued fetchData:", err));
+      }
     }
   };
 
@@ -52,7 +67,7 @@ export const App: React.FC = () => {
         logEntry.method === 'agent:turn' ||
         logEntry.type === 'response'
       ) {
-        fetchData(); // Sync UI
+        fetchData(); // Sync UI with coalesced fetching
       }
     });
 
@@ -90,7 +105,12 @@ export const App: React.FC = () => {
     try {
       const service = VitalisServiceFactory.getService();
       const res = await service.sendMessage(msg);
-      await fetchData();
+
+      // Trigger background sync without blocking the voice response
+      fetchData().catch((err) => {
+        console.error("Background data sync error after message:", err);
+      });
+
       return {
         spokenResponse: res.spokenResponse,
         toolExecutions: res.toolExecutions || []

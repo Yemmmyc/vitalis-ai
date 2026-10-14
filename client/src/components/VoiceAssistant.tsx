@@ -11,6 +11,7 @@ interface VoiceAssistantProps {
 export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, isThinking }) => {
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   const [spokenResponse, setSpokenResponse] = useState<string>(
     "Good morning Eleanor! I'm Vitalis, your health advocate. How are you feeling today?"
   );
@@ -18,6 +19,8 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<any>(null);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const lastSpokenRef = useRef<string>('');
 
   useEffect(() => {
     // Setup Web Speech API SpeechSynthesis voices preloading for Web Browser mode
@@ -39,18 +42,49 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
-      recognition.interimResults = false;
+      recognition.interimResults = true;
       recognition.lang = 'en-US';
 
       recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInputText(transcript);
-        handleSend(transcript);
+        let finalTranscript = '';
+        let interimTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const res = event.results[i];
+          if (res.isFinal) {
+            finalTranscript += res[0].transcript;
+          } else {
+            interimTranscript += res[0].transcript;
+          }
+        }
+
+        if (finalTranscript) {
+          lastSpokenRef.current = finalTranscript;
+          setInputText(finalTranscript);
+          setVoiceNotice(null);
+          handleSend(finalTranscript);
+        } else if (interimTranscript) {
+          lastSpokenRef.current = interimTranscript;
+          setInputText(interimTranscript);
+        }
       };
 
       recognition.onerror = (err: any) => {
         console.warn('[Vitalis AI Voice Recognition Error]:', err);
         setIsListening(false);
+        const errType = err?.error;
+        if (errType === 'no-speech') {
+          setVoiceNotice("No speech detected. Tap the mic or choose a quick prompt to try again.");
+        } else if (errType === 'not-allowed' || errType === 'permission-denied') {
+          setVoiceNotice("Microphone permission was not allowed. You can type your request or check browser permissions.");
+        } else if (errType === 'network') {
+          setVoiceNotice("Voice network connection issue. You can try speaking again or use text input.");
+        } else if (errType === 'aborted') {
+          // Explicitly stopped or cancelled; no error notice required
+          setVoiceNotice(null);
+        } else {
+          setVoiceNotice("Voice recognition stopped. You can tap the mic again or type your message below.");
+        }
       };
 
       recognition.onend = () => {
@@ -59,6 +93,21 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
 
       recognitionRef.current = recognition;
     }
+
+    return () => {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch {}
+      }
+      if (activeUtteranceRef.current) {
+        activeUtteranceRef.current.onstart = null;
+        activeUtteranceRef.current.onend = null;
+        activeUtteranceRef.current.onerror = null;
+        activeUtteranceRef.current = null;
+      }
+      if (!Capacitor.isNativePlatform() && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
   }, []);
 
   const getBestEnglishVoice = (voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null => {
@@ -68,6 +117,22 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
     const en = voices.find(v => v.lang.toLowerCase().startsWith('en'));
     if (en) return en;
     return voices[0];
+  };
+
+  const stopCurrentSpeech = () => {
+    if (activeUtteranceRef.current) {
+      activeUtteranceRef.current.onstart = null;
+      activeUtteranceRef.current.onend = null;
+      activeUtteranceRef.current.onerror = null;
+      activeUtteranceRef.current = null;
+    }
+    if (!Capacitor.isNativePlatform() && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+    }
+    setIsSpeaking(false);
   };
 
   const speakText = async (text: string) => {
@@ -101,7 +166,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
     }
 
     try {
-      window.speechSynthesis.cancel();
+      stopCurrentSpeech();
 
       const doSpeak = () => {
         let voices = voicesRef.current;
@@ -111,6 +176,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
         }
 
         const utterance = new SpeechSynthesisUtterance(text);
+        activeUtteranceRef.current = utterance;
         utterance.lang = 'en-US';
         utterance.rate = 0.95; // Gentle elder-friendly pace
         utterance.pitch = 1.05;
@@ -120,22 +186,33 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
           utterance.voice = chosenVoice;
         }
 
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = (e) => {
-          console.error('[Vitalis AI Web TTS Utterance Error]:', e);
+        utterance.onstart = () => {
+          setIsSpeaking(true);
+        };
+
+        utterance.onend = () => {
+          if (activeUtteranceRef.current === utterance) {
+            activeUtteranceRef.current = null;
+          }
           setIsSpeaking(false);
         };
 
-        // Short delay for Android WebView engine readiness
-        setTimeout(() => {
-          try {
-            window.speechSynthesis.speak(utterance);
-          } catch (err) {
-            console.error('[Vitalis AI Web TTS Exception]:', err);
-            setIsSpeaking(false);
+        utterance.onerror = (e) => {
+          if (activeUtteranceRef.current === utterance) {
+            activeUtteranceRef.current = null;
           }
-        }, 50);
+          setIsSpeaking(false);
+          if (e.error !== 'canceled' && e.error !== 'interrupted') {
+            console.warn('[Vitalis AI Web TTS Utterance Notice]:', e.error);
+          }
+        };
+
+        // Resume if browser synthesis is in paused state
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+
+        window.speechSynthesis.speak(utterance);
       };
 
       if (voicesRef.current.length === 0 && window.speechSynthesis.getVoices().length === 0) {
@@ -167,7 +244,9 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
     const query = textToSend || inputText;
     if (!query.trim() || isThinking) return;
 
+    setVoiceNotice(null);
     setInputText('');
+    lastSpokenRef.current = '';
     const res = await onSendMessage(query);
     if (res && res.spokenResponse) {
       setSpokenResponse(res.spokenResponse);
@@ -177,16 +256,29 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
   };
 
   const toggleMic = () => {
+    setVoiceNotice(null);
     if (isListening) {
-      recognitionRef.current?.stop();
+      // Explicit tap-to-finish: user tapped mic while listening to finalize immediately
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        // ignore
+      }
       setIsListening(false);
+      const pending = lastSpokenRef.current.trim();
+      if (pending && !isThinking) {
+        lastSpokenRef.current = '';
+        handleSend(pending);
+      }
     } else {
+      lastSpokenRef.current = '';
       if (recognitionRef.current) {
         try {
           recognitionRef.current.start();
           setIsListening(true);
         } catch (e) {
           setIsListening(false);
+          setVoiceNotice("Could not start microphone. Please check permissions or type below.");
         }
       } else {
         alert("Speech recognition is not supported in this browser. Please use the prompt buttons or text input!");
@@ -306,6 +398,24 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
         </div>
       </div>
 
+      {/* Voice Recognition Notice Banner */}
+      {voiceNotice && (
+        <div className="mb-3 px-3.5 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs flex items-center justify-between gap-2 animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+            <span>{voiceNotice}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setVoiceNotice(null)}
+            className="text-amber-400 hover:text-amber-200 text-sm px-1.5 py-0.5 rounded"
+            title="Dismiss Notice"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Input Bar with Mic & Send */}
       <form
         onSubmit={(e) => {
@@ -322,7 +432,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
               ? 'bg-rose-500 text-white animate-pulse'
               : 'bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700'
           }`}
-          title="Push to talk (Speech-to-Text)"
+          title={isListening ? "Tap to finish speaking" : "Push to talk (Speech-to-Text)"}
         >
           {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
         </button>
