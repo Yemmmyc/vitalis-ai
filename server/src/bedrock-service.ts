@@ -59,6 +59,14 @@ export class BedrockService {
 
   public async generateResponse(prompt: string, systemPrompt?: string): Promise<string> {
     if (this.isConfigured && this.client) {
+      const BEDROCK_TIMEOUT_MS = 8000;
+      const abortController = new AbortController();
+      let isTimedOut = false;
+      const timeoutId = setTimeout(() => {
+        isTimedOut = true;
+        abortController.abort();
+      }, BEDROCK_TIMEOUT_MS);
+
       try {
         const payload = {
           anthropic_version: "bedrock-2023-05-31",
@@ -74,11 +82,17 @@ export class BedrockService {
           body: JSON.stringify(payload)
         });
 
-        const response = await this.client.send(command);
+        const response = await this.client.send(command, { abortSignal: abortController.signal });
         const decoded = JSON.parse(new TextDecoder().decode(response.body));
         return decoded.content?.[0]?.text || "I am here with you, Eleanor. How can I assist you right now?";
-      } catch (err) {
-        console.error("[BedrockService] AWS Bedrock call error, falling back to simulated inference:", err);
+      } catch (err: any) {
+        if (isTimedOut || abortController.signal.aborted || err?.name === "AbortError") {
+          console.warn(`[BedrockService] AWS Bedrock call timed out after ${BEDROCK_TIMEOUT_MS}ms; falling back to simulated inference.`);
+        } else {
+          console.error("[BedrockService] AWS Bedrock call error, falling back to simulated inference:", err);
+        }
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
 

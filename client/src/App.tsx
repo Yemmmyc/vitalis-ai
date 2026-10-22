@@ -115,10 +115,15 @@ export const App: React.FC = () => {
         spokenResponse: res.spokenResponse,
         toolExecutions: res.toolExecutions || []
       };
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Voice chat request error:", err);
+      const isTimeout = err?.isTimeout || err?.message?.includes("timed out");
+      const fallbackMsg = isTimeout
+        ? "The Vitalis cloud service took longer than expected to respond, likely due to a cold start. Please tap the mic or choose a quick prompt to try again in a moment."
+        : "I encountered a brief connection issue, Eleanor, but I am right here with you. Please tap the mic or try again.";
+
       return {
-        spokenResponse: "I encountered a brief connection issue, Eleanor, but I am right here with you.",
+        spokenResponse: fallbackMsg,
         toolExecutions: []
       };
     } finally {

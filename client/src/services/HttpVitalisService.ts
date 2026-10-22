@@ -21,13 +21,40 @@ export class HttpVitalisService implements IVitalisService {
   }
 
   public async sendMessage(message: string, patientId: string = "pt-88219"): Promise<ChatResponse> {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, patientId })
-    });
-    if (!res.ok) throw new Error('Failed to send message');
-    return await res.json();
+    const CHAT_TIMEOUT_MS = 25000;
+    const controller = new AbortController();
+    let isTimedOut = false;
+    const timeoutId = setTimeout(() => {
+      isTimedOut = true;
+      controller.abort();
+    }, CHAT_TIMEOUT_MS);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, patientId }),
+        signal: controller.signal
+      });
+      if (!res.ok) {
+        throw new Error(`Server request failed with status ${res.status}`);
+      }
+      return await res.json();
+    } catch (err: any) {
+      if (isTimedOut || err?.name === 'AbortError') {
+        const timeoutError = new Error('Request timed out after 25 seconds. The cloud server may be starting up—please try again.');
+        (timeoutError as any).isTimeout = true;
+        throw timeoutError;
+      }
+      if (err instanceof TypeError && err.message?.toLowerCase().includes('fetch')) {
+        const networkError = new Error('Network connection issue. Please check your network and try again.');
+        (networkError as any).isNetwork = true;
+        throw networkError;
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   public async logDose(

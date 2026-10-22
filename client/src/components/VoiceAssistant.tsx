@@ -11,6 +11,7 @@ interface VoiceAssistantProps {
 export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, isThinking }) => {
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isRecognizingSpeech, setIsRecognizingSpeech] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   const [spokenResponse, setSpokenResponse] = useState<string>(
     "Good morning Eleanor! I'm Vitalis, your health advocate. How are you feeling today?"
@@ -21,6 +22,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const lastSpokenRef = useRef<string>('');
+  const hasSubmittedRef = useRef<boolean>(false);
+  const isSubmittingRef = useRef<boolean>(false);
+  const sessionTextRef = useRef<string>('');
+  const currentSessionIdRef = useRef<number>(0);
 
   useEffect(() => {
     // Setup Web Speech API SpeechSynthesis voices preloading for Web Browser mode
@@ -46,10 +51,15 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
       recognition.lang = 'en-US';
 
       recognition.onresult = (event: any) => {
+        const sessionId = currentSessionIdRef.current;
+        if (sessionId === 0 || hasSubmittedRef.current) {
+          return;
+        }
+
         let finalTranscript = '';
         let interimTranscript = '';
 
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
+        for (let i = 0; i < event.results.length; ++i) {
           const res = event.results[i];
           if (res.isFinal) {
             finalTranscript += res[0].transcript;
@@ -58,43 +68,111 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
           }
         }
 
-        if (finalTranscript) {
-          lastSpokenRef.current = finalTranscript;
-          setInputText(finalTranscript);
+        let combined = finalTranscript;
+        if (finalTranscript && interimTranscript && !finalTranscript.endsWith(' ') && !interimTranscript.startsWith(' ')) {
+          combined += ' ';
+        }
+        combined += interimTranscript;
+        const trimmedCombined = combined.trim();
+
+        if (trimmedCombined) {
+          sessionTextRef.current = trimmedCombined;
+          lastSpokenRef.current = trimmedCombined;
+          setInputText(trimmedCombined);
           setVoiceNotice(null);
-          handleSend(finalTranscript);
-        } else if (interimTranscript) {
-          lastSpokenRef.current = interimTranscript;
-          setInputText(interimTranscript);
+          setIsRecognizingSpeech(true);
+        }
+
+        const trimmedFinal = finalTranscript.trim();
+        const hasInterim = interimTranscript.trim().length > 0;
+
+        // If we have final results and no ongoing interim text, finalize and submit immediately
+        if (trimmedFinal && !hasInterim && !hasSubmittedRef.current && !isSubmittingRef.current && !isThinking) {
+          hasSubmittedRef.current = true;
+          sessionTextRef.current = '';
+          lastSpokenRef.current = '';
+          setIsListening(false);
+          setIsRecognizingSpeech(false);
+          try {
+            recognition.stop();
+          } catch {
+            // ignore
+          }
+          handleSend(trimmedFinal);
         }
       };
 
       recognition.onerror = (err: any) => {
         console.warn('[Vitalis AI Voice Recognition Error]:', err);
-        setIsListening(false);
         const errType = err?.error;
+
         if (errType === 'no-speech') {
-          setVoiceNotice("No speech detected. Tap the mic or choose a quick prompt to try again.");
+          // If a usable transcript was already captured during this session, do not wipe it and do not show error banner.
+          // onend will handle submitting the pending text.
+          if (!sessionTextRef.current.trim()) {
+            setVoiceNotice("No speech detected. Tap the mic or choose a quick prompt to try again.");
+          }
+          setIsListening(false);
+          setIsRecognizingSpeech(false);
         } else if (errType === 'not-allowed' || errType === 'permission-denied') {
+          // Permission denied: ensure nothing is auto-submitted on onend
+          hasSubmittedRef.current = true;
+          sessionTextRef.current = '';
+          lastSpokenRef.current = '';
+          setIsListening(false);
+          setIsRecognizingSpeech(false);
           setVoiceNotice("Microphone permission was not allowed. You can type your request or check browser permissions.");
+        } else if (errType === 'audio-capture') {
+          hasSubmittedRef.current = true;
+          sessionTextRef.current = '';
+          lastSpokenRef.current = '';
+          setIsListening(false);
+          setIsRecognizingSpeech(false);
+          setVoiceNotice("No microphone was found or microphone could not be accessed.");
         } else if (errType === 'network') {
+          hasSubmittedRef.current = true;
+          sessionTextRef.current = '';
+          lastSpokenRef.current = '';
+          setIsListening(false);
+          setIsRecognizingSpeech(false);
           setVoiceNotice("Voice network connection issue. You can try speaking again or use text input.");
         } else if (errType === 'aborted') {
-          // Explicitly stopped or cancelled; no error notice required
+          hasSubmittedRef.current = true;
+          sessionTextRef.current = '';
+          lastSpokenRef.current = '';
+          setIsListening(false);
+          setIsRecognizingSpeech(false);
           setVoiceNotice(null);
         } else {
-          setVoiceNotice("Voice recognition stopped. You can tap the mic again or type your message below.");
+          setIsListening(false);
+          setIsRecognizingSpeech(false);
+          if (!sessionTextRef.current.trim()) {
+            hasSubmittedRef.current = true;
+            setVoiceNotice("Voice recognition stopped. You can tap the mic again or type your message below.");
+          }
         }
       };
 
       recognition.onend = () => {
         setIsListening(false);
+        setIsRecognizingSpeech(false);
+
+        // Auto-submit pending transcript if recognition ended without an explicit final event
+        const pending = sessionTextRef.current.trim() || lastSpokenRef.current.trim();
+        sessionTextRef.current = '';
+        lastSpokenRef.current = '';
+
+        if (pending && !hasSubmittedRef.current && !isSubmittingRef.current && !isThinking) {
+          hasSubmittedRef.current = true;
+          handleSend(pending);
+        }
       };
 
       recognitionRef.current = recognition;
     }
 
     return () => {
+      currentSessionIdRef.current++;
       if (recognitionRef.current) {
         try { recognitionRef.current.abort(); } catch {}
       }
@@ -241,17 +319,36 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
   };
 
   const handleSend = async (textToSend?: string) => {
-    const query = textToSend || inputText;
-    if (!query.trim() || isThinking) return;
+    const query = (textToSend !== undefined ? textToSend : inputText).trim();
+    if (!query || isSubmittingRef.current || isThinking) return;
 
+    // Synchronous guards to prevent duplicate parallel dispatch
+    isSubmittingRef.current = true;
+    hasSubmittedRef.current = true;
+    sessionTextRef.current = '';
+    lastSpokenRef.current = '';
     setVoiceNotice(null);
     setInputText('');
-    lastSpokenRef.current = '';
-    const res = await onSendMessage(query);
-    if (res && res.spokenResponse) {
-      setSpokenResponse(res.spokenResponse);
-      setActiveTools(res.toolExecutions || []);
-      speakText(res.spokenResponse);
+    setIsRecognizingSpeech(false);
+    setIsListening(false);
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // ignore
+      }
+    }
+
+    try {
+      const res = await onSendMessage(query);
+      if (res && res.spokenResponse) {
+        setSpokenResponse(res.spokenResponse);
+        setActiveTools(res.toolExecutions || []);
+        speakText(res.spokenResponse);
+      }
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
@@ -259,25 +356,46 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
     setVoiceNotice(null);
     if (isListening) {
       // Explicit tap-to-finish: user tapped mic while listening to finalize immediately
+      setIsListening(false);
+      setIsRecognizingSpeech(false);
+
+      const pending = sessionTextRef.current.trim() || lastSpokenRef.current.trim();
+      sessionTextRef.current = '';
+      lastSpokenRef.current = '';
+
       try {
         recognitionRef.current?.stop();
       } catch {
         // ignore
       }
-      setIsListening(false);
-      const pending = lastSpokenRef.current.trim();
-      if (pending && !isThinking) {
-        lastSpokenRef.current = '';
+
+      if (pending && !hasSubmittedRef.current && !isSubmittingRef.current && !isThinking) {
+        hasSubmittedRef.current = true;
         handleSend(pending);
+      } else {
+        hasSubmittedRef.current = true;
       }
     } else {
+      // Start a new session: safely reset per-utterance state
+      currentSessionIdRef.current += 1;
+      hasSubmittedRef.current = false;
+      sessionTextRef.current = '';
       lastSpokenRef.current = '';
+      setIsRecognizingSpeech(false);
+
       if (recognitionRef.current) {
         try {
+          // If previous recognition was still stopping/active, abort it safely first
+          try {
+            recognitionRef.current.abort();
+          } catch {
+            // ignore
+          }
           recognitionRef.current.start();
           setIsListening(true);
-        } catch (e) {
+        } catch (e: any) {
           setIsListening(false);
+          setIsRecognizingSpeech(false);
           setVoiceNotice("Could not start microphone. Please check permissions or type below.");
         }
       } else {
@@ -300,18 +418,34 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
         <div className="flex items-center gap-2.5 sm:gap-3">
           <div className="relative shrink-0">
             <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full alexa-gradient flex items-center justify-center transition-all ${
-              isSpeaking || isListening ? 'ring-4 ring-sky-400 animate-pulse-glow' : 'shadow-lg shadow-sky-500/30'
+              isSpeaking
+                ? 'ring-4 ring-sky-400 animate-pulse-glow'
+                : isThinking
+                ? 'ring-4 ring-amber-400 animate-pulse'
+                : isListening && isRecognizingSpeech
+                ? 'ring-4 ring-emerald-400 animate-pulse'
+                : isListening
+                ? 'ring-4 ring-rose-500 animate-pulse-glow'
+                : 'shadow-lg shadow-sky-500/30'
             }`}>
-              {isListening ? (
+              {isSpeaking ? (
+                <Volume2 className="w-5 h-5 sm:w-6 sm:h-6 text-white animate-pulse" />
+              ) : isThinking ? (
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white animate-spin" />
+              ) : isListening ? (
                 <Mic className="w-5 h-5 sm:w-6 sm:h-6 text-white animate-bounce" />
               ) : (
                 <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               )}
             </div>
-            {(isSpeaking || isListening) && (
+            {(isSpeaking || isThinking || isListening) && (
               <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-sky-500" />
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${
+                  isSpeaking ? 'bg-sky-400' : isThinking ? 'bg-amber-400' : isRecognizingSpeech ? 'bg-emerald-400' : 'bg-rose-400'
+                } opacity-75`} />
+                <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${
+                  isSpeaking ? 'bg-sky-500' : isThinking ? 'bg-amber-500' : isRecognizingSpeech ? 'bg-emerald-500' : 'bg-rose-500'
+                }`} />
               </span>
             )}
           </div>
@@ -323,6 +457,21 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
                   <Volume2 className="w-3 h-3 animate-pulse" /> Speaking
                 </span>
               )}
+              {isThinking && (
+                <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                  <Sparkles className="w-3 h-3 animate-spin" /> Waiting for AI
+                </span>
+              )}
+              {isListening && isRecognizingSpeech && (
+                <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  <Mic className="w-3 h-3 animate-pulse" /> Recognizing Speech...
+                </span>
+              )}
+              {isListening && !isRecognizingSpeech && (
+                <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                  <Mic className="w-3 h-3 animate-bounce" /> Listening...
+                </span>
+              )}
             </div>
             <p className="text-[11px] sm:text-xs text-slate-400">MCP Telemetry • Amazon Bedrock</p>
           </div>
@@ -330,11 +479,21 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
 
         {/* Audio Waveform Animation */}
         <div className="hidden xs:flex items-center gap-1.5 h-8 px-2.5 py-1 rounded-xl bg-slate-900/80 border border-slate-800 shrink-0">
-          <div className={`w-1 bg-sky-400 rounded-full transition-all ${isSpeaking || isListening ? 'animate-wave-1' : 'h-2'}`} />
-          <div className={`w-1 bg-sky-400 rounded-full transition-all ${isSpeaking || isListening ? 'animate-wave-2' : 'h-3'}`} />
-          <div className={`w-1 bg-sky-400 rounded-full transition-all ${isSpeaking || isListening ? 'animate-wave-3' : 'h-4'}`} />
-          <div className={`w-1 bg-sky-400 rounded-full transition-all ${isSpeaking || isListening ? 'animate-wave-4' : 'h-2'}`} />
-          <div className={`w-1 bg-sky-400 rounded-full transition-all ${isSpeaking || isListening ? 'animate-wave-5' : 'h-3'}`} />
+          <div className={`w-1 rounded-full transition-all ${
+            isSpeaking ? 'bg-sky-400 animate-wave-1' : isThinking ? 'bg-amber-400 animate-wave-1' : isRecognizingSpeech ? 'bg-emerald-400 animate-wave-1' : isListening ? 'bg-rose-400 animate-wave-1' : 'bg-sky-400 h-2'
+          }`} />
+          <div className={`w-1 rounded-full transition-all ${
+            isSpeaking ? 'bg-sky-400 animate-wave-2' : isThinking ? 'bg-amber-400 animate-wave-2' : isRecognizingSpeech ? 'bg-emerald-400 animate-wave-2' : isListening ? 'bg-rose-400 animate-wave-2' : 'bg-sky-400 h-3'
+          }`} />
+          <div className={`w-1 rounded-full transition-all ${
+            isSpeaking ? 'bg-sky-400 animate-wave-3' : isThinking ? 'bg-amber-400 animate-wave-3' : isRecognizingSpeech ? 'bg-emerald-400 animate-wave-3' : isListening ? 'bg-rose-400 animate-wave-3' : 'bg-sky-400 h-4'
+          }`} />
+          <div className={`w-1 rounded-full transition-all ${
+            isSpeaking ? 'bg-sky-400 animate-wave-4' : isThinking ? 'bg-amber-400 animate-wave-4' : isRecognizingSpeech ? 'bg-emerald-400 animate-wave-4' : isListening ? 'bg-rose-400 animate-wave-4' : 'bg-sky-400 h-2'
+          }`} />
+          <div className={`w-1 rounded-full transition-all ${
+            isSpeaking ? 'bg-sky-400 animate-wave-5' : isThinking ? 'bg-amber-400 animate-wave-5' : isRecognizingSpeech ? 'bg-emerald-400 animate-wave-5' : isListening ? 'bg-rose-400 animate-wave-5' : 'bg-sky-400 h-3'
+          }`} />
         </div>
       </div>
 
@@ -429,7 +588,9 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
           onClick={toggleMic}
           className={`p-3 rounded-2xl transition-all ${
             isListening
-              ? 'bg-rose-500 text-white animate-pulse'
+              ? isRecognizingSpeech
+                ? 'bg-emerald-500 text-white animate-pulse'
+                : 'bg-rose-500 text-white animate-pulse'
               : 'bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700'
           }`}
           title={isListening ? "Tap to finish speaking" : "Push to talk (Speech-to-Text)"}
