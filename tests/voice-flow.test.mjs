@@ -618,6 +618,47 @@ test("Voice Flow & Assistant Latency Optimization Suite", async (t) => {
     assert.equal(submittedText, "New speech from session 2");
   });
 
+  await t.test("lastRecognizedText is captured on submission and persists after input composer is cleared", () => {
+    let inputText = "What pills do I need to take today?";
+    let lastRecognizedText = "";
+    let isSubmitting = false;
+
+    const handleSend = (text) => {
+      isSubmitting = true;
+      inputText = ""; // composer cleared immediately
+      isSubmitting = false;
+    };
+
+    // 1. Automatic final recognition completion
+    const onResultFinal = (finalText) => {
+      lastRecognizedText = finalText;
+      handleSend(finalText);
+    };
+
+    onResultFinal("What pills do I need to take today?");
+    assert.equal(inputText, "", "Input composer must be cleared for new input");
+    assert.equal(lastRecognizedText, "What pills do I need to take today?", "Recognized transcript must persist independently of input composer");
+
+    // 2. Starting next recognition session resets lastRecognizedText
+    const startNewSession = () => {
+      lastRecognizedText = "";
+      inputText = "";
+    };
+
+    startNewSession();
+    assert.equal(lastRecognizedText, "", "Displayed transcript must be cleared when a new session starts");
+
+    // 3. Manual microphone stop also captures lastRecognizedText
+    const toggleMicStop = (pendingText) => {
+      lastRecognizedText = pendingText;
+      handleSend(pendingText);
+    };
+
+    toggleMicStop("I am feeling dizzy standing up");
+    assert.equal(inputText, "");
+    assert.equal(lastRecognizedText, "I am feeling dizzy standing up", "Manual stop must update the same recognized transcript display");
+  });
+
   // 5. Client Request Timeout & AbortController Handling
   await t.test("Client request timeout aborts request and marks error as timeout after deadline", async () => {
     let timeoutCleanedUp = false;

@@ -10,6 +10,7 @@ interface VoiceAssistantProps {
 
 export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, isThinking }) => {
   const [inputText, setInputText] = useState('');
+  const [lastRecognizedText, setLastRecognizedText] = useState<string>('');
   const [isListening, setIsListening] = useState(false);
   const [isRecognizingSpeech, setIsRecognizingSpeech] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
@@ -98,6 +99,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
           } catch {
             // ignore
           }
+          setLastRecognizedText(trimmedFinal);
           handleSend(trimmedFinal);
         }
       };
@@ -164,6 +166,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
 
         if (pending && !hasSubmittedRef.current && !isSubmittingRef.current && !isThinking) {
           hasSubmittedRef.current = true;
+          setLastRecognizedText(pending);
           handleSend(pending);
         }
       };
@@ -371,6 +374,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
 
       if (pending && !hasSubmittedRef.current && !isSubmittingRef.current && !isThinking) {
         hasSubmittedRef.current = true;
+        setLastRecognizedText(pending);
         handleSend(pending);
       } else {
         hasSubmittedRef.current = true;
@@ -381,6 +385,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
       hasSubmittedRef.current = false;
       sessionTextRef.current = '';
       lastSpokenRef.current = '';
+      setLastRecognizedText('');
       setIsRecognizingSpeech(false);
 
       if (recognitionRef.current) {
@@ -569,6 +574,32 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onSendMessage, i
             onClick={() => setVoiceNotice(null)}
             className="text-amber-400 hover:text-amber-200 text-sm px-1.5 py-0.5 rounded"
             title="Dismiss Notice"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Recognized Voice Transcript Display */}
+      {lastRecognizedText && (
+        <div
+          id="recognized-voice-transcript"
+          className="mb-2.5 px-3.5 py-2 rounded-2xl bg-sky-500/10 border border-sky-500/25 text-xs text-sky-200 flex items-center justify-between gap-2 animate-fadeIn"
+        >
+          <div className="flex items-center gap-2 truncate">
+            <span className="shrink-0 flex items-center gap-1 font-semibold text-sky-400">
+              <Mic className="w-3.5 h-3.5 text-sky-400" />
+              You said:
+            </span>
+            <span className="truncate italic text-slate-100 font-medium">
+              "{lastRecognizedText}"
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setLastRecognizedText('')}
+            className="text-slate-400 hover:text-slate-200 text-sm px-1.5 py-0.5 rounded shrink-0 transition-colors"
+            title="Dismiss transcript"
           >
             ×
           </button>
