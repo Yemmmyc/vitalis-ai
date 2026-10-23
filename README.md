@@ -11,7 +11,7 @@
 
 > **Built for the Amazon Developer Hackathon: Build, Ship, Shape (2026)**  
 > **Primary Track:** Alexa+  
-> **Mini-Challenges:** AWS Builder & Open Source  
+> **Mini-Challenges:** Open Source  
 > **Live Web Application (Render):** [https://vitalis-ai-wtdy.onrender.com/](https://vitalis-ai-wtdy.onrender.com/)  
 > **Source Repository:** [https://github.com/Yemmmyc/vitalis-ai](https://github.com/Yemmmyc/vitalis-ai)  
 > **Submission Release:** [Vitalis Care v1.0.1](https://github.com/Yemmmyc/vitalis-ai/releases/tag/v1.0.1)  
